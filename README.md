@@ -111,8 +111,8 @@ Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
 lifter and the runtime must come from the same tree. Until they merge, the
 toolkit needs three pcrecomp branches: `feat/steamstub-2.0` (the launcher's
-DRM, pcrecomp#52), `feat/eh32` (guest C++ exceptions) and
-`feat/disasm32-nop-padded-entries` (a missed static constructor).
+DRM, pcrecomp#52), `feat/eh32` (guest C++ exceptions, pcrecomp#53) and
+`feat/disasm32-nop-padded-entries` (a missed static constructor, pcrecomp#54).
 
 ## Documentation
 
