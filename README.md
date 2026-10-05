@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up.** Every module lifts with 0 errors, and the recompiled dedicated server runs: UCC loads a map, starts a Deathmatch and answers server-browser queries. The game's own window and renderer are next.
+## Status: **P1, bring-up.** Every module lifts with 0 errors. The recompiled dedicated server runs a Deathmatch and answers server-browser queries, and the game itself boots and renders its intro in the software renderer. Menus and play are next.
 
 | Stage | State |
 |---|---|
@@ -25,9 +25,19 @@ target first, and a different route to the same game.
 | Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32) |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
-| The game (`UnrealTournament.exe`, SoftDrv) | not run yet |
+| The game (`UnrealTournament.exe`, SoftDrv) | **boots and renders**: every DLL attached, the intro map loaded, title music, Galaxy audio on DirectSound, the software renderer drawing the flyby in its window. Not yet checked: the menu, a match, frame-exact output |
 | Headless mode | not yet |
 | Conformance harness | not yet |
+
+## Screenshots
+
+The recompiled game, software renderer, the intro flyby (640x480, windowed):
+
+![Intro flyby](docs/screenshots/intro-corridor.png)
+
+UT's own Recovery Mode dialog, drawn by the recompiled Window.dll:
+
+![Recovery Mode](docs/screenshots/recovery-dialog.png)
 
 ## Getting Started
 
@@ -98,7 +108,15 @@ build\ut99.exe                                   # dry run: map and bind every m
 build\ut99.exe --run                             # the game
 build\ut99.exe --run --ucc --headless -- server  # UCC: a dedicated server, no window
 build\ut99.exe --run --watchdog 60               # stop after 60 s with a report
+build\ut99.exe --run --log                       # the engine's log on stderr as it is written
 ```
+
+The shipping ini starts in fullscreen through DirectDraw at 640x480x16,
+which fails on Windows 11 (the original faults on it). Until the presenter
+lands, run windowed: under `[WinDrv.WindowsClient]` in
+`game\System\UnrealTournament.ini`, `StartupFullscreen=False` and
+`UseDirectDraw=False`. A run that crashed leaves `System\Running.ini`, and
+the next start opens Recovery Mode; *Run Unreal Tournament* carries on.
 
 Everything after `--` is the game's own command line. Diagnostics:
 `--native-trace` (every call into Windows), `--callbacks`, `--probe VA`, and

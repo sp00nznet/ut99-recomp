@@ -296,8 +296,38 @@ static uint32_t g_probe[MAX_PROBES];
 static int g_nprobe;
 static volatile LONG g_probe_hits[MAX_PROBES];
 
+/* --log: the engine's log on stderr as it is written. Every module logs
+ * through Core's exported FOutputDevice::Logf (cdecl: this, [EName,] fmt,
+ * ...), so its import reaches recomp_lookup_manual, which hands back these
+ * wrappers: they run as the callee, print, and run the real Logf. UT's own
+ * log file is flushed only at exit, and a killed run leaves it empty. */
+#define CORE_LOGF       0x1010284Cu   /* ?Logf@FOutputDevice@@QAAXPBGZZ */
+#define CORE_LOGF_EVENT 0x10102AD1u   /* ?Logf@FOutputDevice@@QAAXW4EName@@PBGZZ */
+static int g_log;
+
+static void log_line(uint32_t fmt_slot) {
+    wchar_t buf[1024];
+    const wchar_t* fmt = (const wchar_t*)(uintptr_t)MEM32(fmt_slot);
+    if (!fmt) return;
+    _vsnwprintf(buf, 1023, fmt, (va_list)(uintptr_t)(fmt_slot + 4));
+    buf[1023] = 0;
+    fprintf(stderr, "[log] %ls\n", buf);
+}
+
+static void hook_logf(void) {
+    log_line(g_esp + 8);                      /* [ret][this][fmt] */
+    recomp_lookup(CORE_LOGF)();
+}
+
+static void hook_logf_event(void) {
+    log_line(g_esp + 12);                     /* [ret][this][event][fmt] */
+    recomp_lookup(CORE_LOGF_EVENT)();
+}
+
 /* --probe VA: report indirect calls to VA (RECOMP_ICALL asks this first). */
 recomp_func_t recomp_lookup_manual(uint32_t va) {
+    if (g_log && va == CORE_LOGF) return hook_logf;
+    if (g_log && va == CORE_LOGF_EVENT) return hook_logf_event;
     for (int i = 0; i < g_nprobe; i++)
         if (g_probe[i] == va && InterlockedIncrement(&g_probe_hits[i]) <= 5)
             fprintf(stderr, "[probe] sub_%08X from sub_%08X  ecx=%08X  args %08X %08X %08X\n",
@@ -357,6 +387,14 @@ static LONG CALLBACK crash(EXCEPTION_POINTERS* ep) {
         ULONG_PTR op = r->ExceptionInformation[0];
         uint32_t at = (uint32_t)r->ExceptionInformation[1];
         crash_emit("  %s of 0x%08X %s\n", op == 0 ? "read" : op == 1 ? "write" : "execute", at, module_of(at));
+        if (op == 8 && !IsBadReadPtr((void*)(uintptr_t)at, 16)) {
+            MEMORY_BASIC_INFORMATION mbi;
+            VirtualQuery((void*)(uintptr_t)at, &mbi, sizeof mbi);
+            crash_emit("  bytes there:");
+            for (int i = 0; i < 16; i++) crash_emit(" %02X", ((uint8_t*)(uintptr_t)at)[i]);
+            crash_emit("\n  region 0x%p+0x%lX protect 0x%lX type 0x%lX\n", mbi.AllocationBase,
+                       (unsigned long)mbi.RegionSize, mbi.Protect, mbi.Type);
+        }
     }
     crash_emit("  in lifted sub_%08X (%s), last native call %s\n", g_cur_func, module_of(g_cur_func),
                g_cur_import);
@@ -376,6 +414,33 @@ static LONG CALLBACK crash(EXCEPTION_POINTERS* ep) {
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
+/* Code the guest builds at run time runs natively. Galaxy copies its mixer
+ * templates out of its .text into GlobalAlloc memory, patches them, and calls
+ * the copies: on 1999's Windows heap memory was executable, under DEP the
+ * call faults. A static lift cannot hold code patched at run time, but the
+ * copy is plain x86 working on guest memory in this address space, so an
+ * execute fault in private (heap) memory makes that region executable and
+ * carries on. A call from it back into a guest module still faults on the
+ * module's non-executable code and goes through native32's trampoline.
+ * ponytail: per title for now; a native32 option if a second title needs it. */
+static LONG CALLBACK guest_generated_code(EXCEPTION_POINTERS* ep) {
+    EXCEPTION_RECORD* r = ep->ExceptionRecord;
+    MEMORY_BASIC_INFORMATION mbi;
+    DWORD old;
+    if (r->ExceptionCode != EXCEPTION_ACCESS_VIOLATION || r->NumberParameters < 2 ||
+        r->ExceptionInformation[0] != 8)
+        return EXCEPTION_CONTINUE_SEARCH;
+    void* at = (void*)r->ExceptionInformation[1];
+    if (native32_in_guest((uint32_t)(uintptr_t)at) || !VirtualQuery(at, &mbi, sizeof mbi) ||
+        mbi.Type != MEM_PRIVATE || mbi.State != MEM_COMMIT || mbi.Protect != PAGE_READWRITE)
+        return EXCEPTION_CONTINUE_SEARCH;
+    if (!VirtualProtect(mbi.BaseAddress, mbi.RegionSize, PAGE_EXECUTE_READWRITE, &old))
+        return EXCEPTION_CONTINUE_SEARCH;
+    fprintf(stderr, "[gencode] guest-built code at 0x%p: 0x%p+0x%lX made executable\n", at,
+            mbi.BaseAddress, (unsigned long)mbi.RegionSize);
+    return EXCEPTION_CONTINUE_EXECUTION;
+}
+
 static DWORD WINAPI watchdog(LPVOID unused) {
     (void)unused;
     Sleep(g_watchdog_s * 1000);
@@ -383,6 +448,10 @@ static DWORD WINAPI watchdog(LPVOID unused) {
             g_watchdog_s, g_cur_func, module_of(g_cur_func), g_cur_import, g_icall_count);
     native32_dump_icalls(8);
     recomp_trace_flush();
+    /* The launcher marks a session with Running.ini and deletes it on a clean
+     * exit; left behind, the next start opens Recovery Mode. A watchdog stop
+     * is deliberate, so it is not a crash to recover from. */
+    DeleteFileA("Running.ini");
     fflush(stderr);
     TerminateProcess(GetCurrentProcess(), 4);
     return 0;
@@ -402,6 +471,7 @@ int main(int argc, char** argv) {
         if (!strcmp(argv[i], "--run")) run = 1;
         else if (!strcmp(argv[i], "--ucc")) launcher = "UCC.exe";
         else if (!strcmp(argv[i], "--headless")) g_headless = 1;
+        else if (!strcmp(argv[i], "--log")) g_log = 1;
         else if (!strcmp(argv[i], "--game") && i + 1 < argc) game = argv[++i];
         else if (!strcmp(argv[i], "--rebased") && i + 1 < argc) strcpy_s(rebased, sizeof rebased, argv[++i]);
         else if (!strcmp(argv[i], "--watchdog") && i + 1 < argc) g_watchdog_s = strtoul(argv[++i], NULL, 0);
@@ -418,7 +488,7 @@ int main(int argc, char** argv) {
             }
         } else {
             printf("usage: ut99 [--run] [--ucc] [--headless] [--watchdog S] [--game game] [--rebased work\\rebased]\n"
-                   "            [--probe VA] [--native-trace] [--callbacks] [-- game arguments]\n"
+                   "            [--log] [--probe VA] [--native-trace] [--callbacks] [-- game arguments]\n"
                    "  ut99 --run                                   the game\n"
                    "  ut99 --run --ucc -- server DM-Deck16][        UCC: a dedicated server, no window\n");
             recomp_trace_help();
@@ -438,6 +508,7 @@ int main(int argc, char** argv) {
     SetDllDirectoryA(g_system_dir);
 
     native32_init();
+    AddVectoredExceptionHandler(1, guest_generated_code);
     AddVectoredExceptionHandler(0, crash);
     printf("Unreal Tournament recomp host\n  lifted functions in dispatch: %u\n", recomp_dispatch_count);
 

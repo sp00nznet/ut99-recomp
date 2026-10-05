@@ -9,8 +9,18 @@ the pipeline. The tools that act on it are `tools/rebase.py`,
 The Steam release (app 13240) is **v436**, the last Epic patch for Windows
 before the community took over: `System\Manifest.ini` says `Version=436`, and
 every engine DLL is linked 2000-10-25 by MSVC 6.0 (linker 6.0). It is the
-plain edition, not GOTY: no S3TC texture CD, no bonus packs beyond what
-`System\` holds.
+Game of the Year Edition (the splash says so; `relics.u`,
+`epiccustommodels.u` and `multimesh.u` are its bonus content), without the
+second CD's S3TC textures.
+
+The original does not start on Windows 11 as shipped: its ini starts in
+fullscreen through DirectDraw at 640x480x16, the mode set fails, and the
+shipping code then faults in `UWindowsViewport::ddSetMode` ("General
+protection fault! History: UWindowsViewport::ddSetMode <-
+UWindowsViewport::ResizeViewport <- USoftwareRenderDevice::SetRes <- ...").
+Windowed without DirectDraw (`StartupFullscreen=False`, `UseDirectDraw=False`
+under `[WinDrv.WindowsClient]`) it runs, which is how the reference runs in
+docs/bringup.md were recorded.
 
 ## The modules
 

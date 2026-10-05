@@ -7,7 +7,9 @@ In order; each is done when its check is in the harness or the docs.
 1. **UCC runs.** Done: `ut99 --run --ucc -- server` runs a Deathmatch
    server headless and answers queries (docs/bringup.md). Next: a client
    joining it, and bots (`?numbots=`) in a match that ends.
-2. **The launcher boots.** `UnrealTournament.exe` through the first-run
+2. **The launcher boots.** Done to the intro: `UnrealTournament.exe` renders
+   the CityIntro flyby in SoftDrv (docs/bringup.md 9). Next: the menu over
+   it, the first-run
    wizard, the splash and the menu, rendered by `SoftDrv`.
 3. **Headless and `--record`**: the software device's frame to ffmpeg, no
    window (REPO_RULES section 13). Then screenshots for this README.

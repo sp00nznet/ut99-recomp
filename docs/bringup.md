@@ -110,3 +110,62 @@ gamever     436
 
 A 90-second run made 1.5 billion indirect calls (the VM's natives and
 virtual dispatch) with no fault.
+
+## 7. The launcher: Recovery Mode
+
+`ut99 --run` (on an offstage virtual monitor) ran the launcher, attached every
+DLL, and crashed in actor initialisation the first time. Every run after that
+opened UT's own Recovery Mode dialog, drawn by the recompiled Window.dll:
+
+![Recovery Mode](screenshots/recovery-dialog.png)
+
+The launcher marks a session with `System\Running.ini` and deletes it on a
+clean exit; a crash or a killed run leaves it. (`RunCount` in the ini is
+only the splash rotation.) The host's watchdog now deletes the marker when it
+stops a run on purpose; a real crash still leaves it.
+
+`--log` prints the engine's log on stderr as it is written. Every module logs
+through Core's exported `FOutputDevice::Logf`, so the host wraps that import;
+UT's own log file is flushed only at exit and a killed run leaves it empty.
+
+## 8. Galaxy's mixers are built at run time
+
+The next crash was an execute fault at a heap address:
+
+```
+=== fault 0xC0000005 at 0x0CE0E81B, thread 59904 ===
+  execute of 0x0CE0E81B
+  region 0x0CDE0000+0xB0000 protect 0x4 type 0x20000
+```
+
+Those bytes are Galaxy's own mixer code (four templates in its `.text` start
+with them): Galaxy copies the templates into `GlobalAlloc` memory, patches
+them, and calls the copies. Heap memory was executable in 1999; under DEP it
+is not. A static lift cannot contain code patched at run time, but the copy
+is plain x86 working on guest memory in this address space, so the host
+makes such a region executable on its first execute fault and the mixer runs
+natively:
+
+```
+[log] Galaxy is using DirectSound
+[log] Galaxy initialized
+[gencode] guest-built code at 0x0D83023B: 0x0D830000+0x99000 made executable
+[log] Game engine initialized
+```
+
+## 9. The intro renders
+
+With that, the game loads the CityIntro map, starts the title music and the
+software renderer draws the flyby in the game's window:
+
+![The intro, software renderer](screenshots/intro-corridor.png)
+
+The shipping ini starts in fullscreen through DirectDraw at 640x480x16, and
+that mode set fails on Windows 11 (`DirectDraw Failed 0x0x16:
+DDERR_UNSUPPORTED`). The recompiled build carries on in the window; the
+**original binary does not start at all** with that ini, it faults in
+`UWindowsViewport::ddSetMode` (docs/RECON.md). Both are run windowed without
+DirectDraw for comparison (`StartupFullscreen=False`, `UseDirectDraw=False`):
+the original reaches the same corridor, and is as dark there, since the
+intro is lit that way in the software renderer. A frame-exact comparison is
+the conformance harness's job (ROADMAP).
