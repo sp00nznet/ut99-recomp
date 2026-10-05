@@ -9,8 +9,7 @@ In order; each is done when its check is in the harness or the docs.
    joining it, and bots (`?numbots=`) in a match that ends.
 2. **The launcher boots.** Done to the intro: `UnrealTournament.exe` renders
    the CityIntro flyby in SoftDrv (docs/bringup.md 9). Next: the menu over
-   it, the first-run
-   wizard, the splash and the menu, rendered by `SoftDrv`.
+   it, and the first-run wizard instead of skipping it in the ini.
 3. **Headless and `--record`**: the software device's frame to ffmpeg, no
    window (REPO_RULES section 13). Then screenshots for this README.
 4. **A match played**: Deathmatch against bots, a map change, a CTF map.
