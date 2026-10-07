@@ -169,3 +169,95 @@ DirectDraw for comparison (`StartupFullscreen=False`, `UseDirectDraw=False`):
 the original reaches the same corridor, and is as dark there, since the
 intro is lit that way in the software renderer. A frame-exact comparison is
 the conformance harness's job (ROADMAP).
+
+## 10. Headless and --record
+
+`--headless --record out.mp4 --frames N` runs with nothing on any screen:
+top-level windows are layered at alpha 0, click-through and off the taskbar,
+so Windows still paints them; the game's mouse capture is kept off the real
+cursor. WinDrv draws each frame by `BitBlt` from the render device's DIB, and
+the shim copies that into the recorder's own top-down 32-bit DIB (GDI handles
+the source's row order and pixel format: reading the DIB by hand came out
+upside down). A thread sends the newest frame to ffmpeg at 30 fps.
+
+```
+[record] 640x480 at 30 fps to work\runs\hl.mp4
+[record] 900 frames written; the game drew 1646
+```
+
+## 11. Every float-to-int cast returned 0x80000000
+
+The first headless videos crawled through the first corridor for 30 seconds,
+where the original's flyby sweeps through the whole city. The log had said so
+from the start:
+
+```
+[log] Startup time: -2147483648.000000 seconds
+```
+
+UT's clock (`FTime`) is 32.32 fixed point: seconds times 2^32, converted
+to a 64-bit integer. MSVC 6 compiles every float-to-integer cast as
+`call _ftol`, and every module imports `_ftol` from msvcrt.dll. `_ftol`
+takes its argument in the x87's st(0); native32's bridge passes stack
+arguments only, and lifted code keeps its FPU stack in `g_st`, so the native
+`_ftol` read whatever the real FPU held and returned the integer indefinite.
+Every timestamp was `0x8000000000000000`, every frame delta nothing.
+
+Fixed in the toolkit (pcrecomp branch `feat/native32-x87-crt`): `_ftol` and
+the `_CI*` intrinsics (`_CIpow`, `_CIfmod`, `_CIacos`, ...) are native32
+built-ins working on the lifted FPU stack, and `_controlfp`/`_control87`
+copy the control word they set into the lifted one.
+
+```
+[log] Startup time: 1.402504 seconds
+```
+
+The flyby then follows the original's route, at about 55 frames a second.
+
+## 12. The renderer drew shards: bisected to one function
+
+With the clock right, the flyby followed the original's route, but the
+picture was wrong: polygons stretched across the screen and drawn over each
+other, no sky. The original (windowed, recorded the same way) was clean.
+
+Two toolkit additions found it without reading a line of the renderer:
+
+- `--native Render.dll` runs that module's original machine code among the
+  lifted ones (pcrecomp `native32_set_native`): clean. SoftDrv native: still
+  broken. So the bug was in Render.dll's lift.
+- `--lift-in-native FILE` lifts chosen functions of a native module after all
+  (`native32_lift_in_native`: their entries become `ud2`, and the trap goes to
+  the lifted body). `tools/find_bad_function.py` halves the set until one
+  function is left, scoring each headless run by how close its frames come to
+  any frame of an all-native run (the flyby takes the same path, so a clean
+  frame has a near twin whatever the frame rate):
+
+```
+all native 99.2, all lifted 251.2
+step 0: 582 functions lifted, score 249.6 -> broken: the bad one is among them
+...
+step 9: 1 functions lifted, score 239.4 -> broken: the bad one is among them
+the function that breaks Render.dll: sub_10B01203
+```
+
+`0x10B01203` is an incremental-link thunk (Render.dll was linked with
+`/INCREMENTAL`) for the vertex transform and clipper at `0x10B159A0`.
+
+## 13. `xor; jge` was always taken
+
+The clipper decides whether an edge crosses a plane by the signs of two
+distances, stored as floats and read as integers:
+
+
+lifted as
+
+
+`or` and `xor` keep their result in both flag slots, and `CMP_GE(r, r)` is
+always true: no edge ever crossed a plane. lift32 had a note saying ordering
+jumps after `or`/`xor` were approximate; they now use `test`'s table, which is
+exact for a result held in both slots (pcrecomp `fix/lift32-or-xor-jcc`, four
+difftest cases, 206/206). With the whole game relifted:
+
+![The city, fixed](screenshots/intro-city.png)
+
+![The billboards](screenshots/intro-billboard.png)

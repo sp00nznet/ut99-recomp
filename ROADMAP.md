@@ -10,8 +10,8 @@ In order; each is done when its check is in the harness or the docs.
 2. **The launcher boots.** Done to the intro: `UnrealTournament.exe` renders
    the CityIntro flyby in SoftDrv (docs/bringup.md 9). Next: the menu over
    it, and the first-run wizard instead of skipping it in the ini.
-3. **Headless and `--record`**: the software device's frame to ffmpeg, no
-   window (REPO_RULES section 13). Then screenshots for this README.
+3. **Headless and `--record`**: done (docs/bringup.md 10), and the README's
+   screenshots come from it. Next: scripted input, for the menu and play.
 4. **A match played**: Deathmatch against bots, a map change, a CTF map.
 5. **Conformance harness** (`tools/conformance.py`): boot milestones and lift
    health against `conformance.json`, failing on regression; netlab recipe.

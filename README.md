@@ -25,15 +25,18 @@ target first, and a different route to the same game.
 | Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32) |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
-| The game (`UnrealTournament.exe`, SoftDrv) | **boots and renders**: every DLL attached, the intro map loaded, title music, Galaxy audio on DirectSound, the software renderer drawing the flyby in its window. Not yet checked: the menu, a match, frame-exact output |
-| Headless mode | not yet |
+| The game (`UnrealTournament.exe`, SoftDrv) | **boots and renders the intro like the original**: every DLL attached, title music, Galaxy audio on DirectSound, the flyby through the city with its sky, towers and billboards, about 55 fps. Not yet: the menu, a match ([bringup.md](docs/bringup.md) 7-13) |
+| Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
 | Conformance harness | not yet |
 
 ## Screenshots
 
-The recompiled game, software renderer, the intro flyby (640x480, windowed):
+The recompiled game, software renderer, the intro flyby (640x480), recorded
+headless (`--headless --record`) with nothing on any screen:
 
-![Intro flyby](docs/screenshots/intro-corridor.png)
+![The city](docs/screenshots/intro-city.png)
+
+![The billboards](docs/screenshots/intro-billboard.png)
 
 UT's own Recovery Mode dialog, drawn by the recompiled Window.dll:
 
@@ -128,9 +131,12 @@ trace options (`build\ut99.exe --help`).
 Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
 lifter and the runtime must come from the same tree. Until they merge, the
-toolkit needs three pcrecomp branches: `feat/steamstub-2.0` (the launcher's
-DRM, pcrecomp#52), `feat/eh32` (guest C++ exceptions, pcrecomp#53) and
-`feat/disasm32-nop-padded-entries` (a missed static constructor, pcrecomp#54).
+toolkit needs six pcrecomp branches, merged in one tree:
+`feat/steamstub-2.0` (the launcher's DRM, pcrecomp#52), `feat/eh32` (guest
+C++ exceptions, #53), `feat/disasm32-nop-padded-entries` (a missed static
+constructor, #54), `feat/native32-x87-crt` (`_ftol` and friends, #56),
+`feat/native32-native-modules` (`--native`, #57) and
+`fix/lift32-or-xor-jcc` (the renderer's clipper, #58).
 
 ## Documentation
 

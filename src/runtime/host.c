@@ -17,9 +17,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <intrin.h>
 
 #include "native32.h"
 #include "recomp_trace.h"
+#include "headless.h"
 
 /* ---- the guest modules ---------------------------------------------------
  * Same bases as tools/rebase.py: the lifted C has them baked in. A module
@@ -29,6 +31,7 @@ typedef struct {
     const char* name;
     uint32_t    base;
     int         attached;
+    int         native;     /* --native: its original code runs */
 } module_t;
 
 static module_t g_modules[] = {
@@ -56,7 +59,7 @@ static char g_guest_cmdline[1024];
 static WCHAR g_guest_cmdline_w[1024];
 
 static DWORD g_watchdog_s;
-static int g_headless;
+static const char* g_lin_file;   /* --lift-in-native */
 
 #define ARG(n) MEM32(g_esp + 4 + 4 * (n))
 
@@ -114,10 +117,17 @@ static int attach(module_t* m) {
         if (dep && !attach(dep)) return 0;
     }
     if (nt->FileHeader.Characteristics & IMAGE_FILE_DLL && nt->OptionalHeader.AddressOfEntryPoint) {
-        uint32_t args[3] = { m->base, DLL_PROCESS_ATTACH, 0 };
-        fprintf(stderr, "[load] %s: DllMain\n", m->name);
-        native32_call_guest(m->base + nt->OptionalHeader.AddressOfEntryPoint, 3, args);
-        if (!g_eax) { fprintf(stderr, "[load] %s: DllMain failed\n", m->name); return 0; }
+        uint32_t args[3] = { m->base, DLL_PROCESS_ATTACH, 0 }, ok;
+        uint32_t entry = m->base + nt->OptionalHeader.AddressOfEntryPoint;
+        fprintf(stderr, "[load] %s: DllMain%s\n", m->name, m->native ? " (original code)" : "");
+        if (m->native) {
+            ok = ((BOOL (WINAPI*)(HINSTANCE, DWORD, LPVOID))(uintptr_t)entry)(
+                (HINSTANCE)(uintptr_t)m->base, DLL_PROCESS_ATTACH, NULL);
+        } else {
+            native32_call_guest(entry, 3, args);
+            ok = g_eax;
+        }
+        if (!ok) { fprintf(stderr, "[load] %s: DllMain failed\n", m->name); return 0; }
     }
     return 1;
 }
@@ -447,6 +457,20 @@ static DWORD WINAPI watchdog(LPVOID unused) {
     fprintf(stderr, "\n[watchdog] %lu s: in sub_%08X (%s), last native call %s, %u indirect calls\n",
             g_watchdog_s, g_cur_func, module_of(g_cur_func), g_cur_import, g_icall_count);
     native32_dump_icalls(8);
+    {
+        /* UT's clock: rdtsc cycles times the GSecondsPerCycle it measured at
+         * startup, against the TSC rate measured here. */
+        uint32_t spc = native32_export(0x10100000u, "?GSecondsPerCycle@@3MA");
+        LARGE_INTEGER f, q0, q1;
+        uint64_t t0 = __rdtsc();
+        QueryPerformanceFrequency(&f);
+        QueryPerformanceCounter(&q0);
+        Sleep(200);
+        QueryPerformanceCounter(&q1);
+        double hz = (double)(__rdtsc() - t0) * f.QuadPart / (double)(q1.QuadPart - q0.QuadPart);
+        if (spc) fprintf(stderr, "[clock] GSecondsPerCycle %g (%.0f MHz); TSC measured %.0f MHz\n",
+                         *(float*)(uintptr_t)spc, 1e-6 / *(float*)(uintptr_t)spc, hz * 1e-6);
+    }
     recomp_trace_flush();
     /* The launcher marks a session with Running.ini and deletes it on a clean
      * exit; left behind, the next start opens Recovery Mode. A watchdog stop
@@ -472,9 +496,25 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--ucc")) launcher = "UCC.exe";
         else if (!strcmp(argv[i], "--headless")) g_headless = 1;
         else if (!strcmp(argv[i], "--log")) g_log = 1;
+        else if (!strcmp(argv[i], "--lift-in-native") && i + 1 < argc) {
+            static char lin[MAX_PATH];             /* the run enters game\System */
+            GetFullPathNameA(argv[++i], MAX_PATH, lin, NULL);
+            g_lin_file = lin;
+        }
+        else if (!strcmp(argv[i], "--native") && i + 1 < argc) {
+            module_t* m = module_by_name(argv[++i]);
+            if (!m) { fprintf(stderr, "--native: no module %s\n", argv[i]); return 1; }
+            m->native = 1;
+        }
         else if (!strcmp(argv[i], "--game") && i + 1 < argc) game = argv[++i];
         else if (!strcmp(argv[i], "--rebased") && i + 1 < argc) strcpy_s(rebased, sizeof rebased, argv[++i]);
         else if (!strcmp(argv[i], "--watchdog") && i + 1 < argc) g_watchdog_s = strtoul(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--record") && i + 1 < argc) {
+            static char rec[MAX_PATH];             /* the run enters game\System */
+            GetFullPathNameA(argv[++i], MAX_PATH, rec, NULL);
+            g_record = rec;
+        }
+        else if (!strcmp(argv[i], "--frames") && i + 1 < argc) g_record_frames = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--probe") && i + 1 < argc && g_nprobe < MAX_PROBES)
             g_probe[g_nprobe++] = strtoul(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--native-trace")) native32_trace_native = 1;
@@ -487,9 +527,11 @@ int main(int argc, char** argv) {
                 if (g_guest_argc < 62) g_guest_argv[++g_guest_argc] = argv[i];
             }
         } else {
-            printf("usage: ut99 [--run] [--ucc] [--headless] [--watchdog S] [--game game] [--rebased work\\rebased]\n"
-                   "            [--log] [--probe VA] [--native-trace] [--callbacks] [-- game arguments]\n"
+            printf("usage: ut99 [--run] [--ucc] [--headless] [--record out.mp4] [--frames N] [--watchdog S]\n"
+                   "            [--game game] [--rebased work\\rebased]\n"
+                   "            [--log] [--native Module.dll] [--probe VA] [--native-trace] [--callbacks] [-- game arguments]\n"
                    "  ut99 --run                                   the game\n"
+                   "  ut99 --run --headless --record out.mp4 --frames 300   no window; 10 s of video\n"
                    "  ut99 --run --ucc -- server DM-Deck16][        UCC: a dedicated server, no window\n");
             recomp_trace_help();
             return argv[i][1] == 'h' || argv[i][2] == 'h' ? 0 : 1;
@@ -521,12 +563,34 @@ int main(int argc, char** argv) {
         _snprintf(path, sizeof path - 1, "%s\\%s", rebased, m->name);
         uint32_t span = native32_map(path, m->base);
         if (!span) { fprintf(stderr, "cannot map %s at 0x%08X\n", path, m->base); return 1; }
-        printf("  mapped %-22s 0x%08X-0x%08X\n", m->name, m->base, m->base + span);
+        printf("  mapped %-22s 0x%08X-0x%08X%s\n", m->name, m->base, m->base + span,
+               m->native ? "  (original code)" : "");
+        if (m->native) native32_set_native(m->base);
     }
-    int nshims = g_headless ? (int)(sizeof g_shims / sizeof g_shims[0]) : NSHIMS_ALWAYS;
+    /* --lift-in-native FILE: functions of the --native modules that still run
+     * lifted, one hex VA per line (tools/bisect.py writes it). */
+    if (g_lin_file) {
+        static uint32_t vas[16384];
+        int n = 0;
+        char line[64];
+        FILE* f = fopen(g_lin_file, "r");
+        if (!f) { fprintf(stderr, "cannot read %s\n", g_lin_file); return 1; }
+        while (n < 16384 && fgets(line, sizeof line, f))
+            if (line[0] == '0') vas[n++] = strtoul(line, NULL, 16);
+        fclose(f);
+        printf("  lifted inside native modules: %d of %d listed\n", native32_lift_in_native(vas, n), n);
+    }
+    /* One array for every module (native32_bind needs the same one each
+     * time): the loader shims, then headless's and --record's. */
+    static native32_shim_t shims[64];
+    int nshims = 0;
+    for (int i = 0; i < (g_headless ? (int)(sizeof g_shims / sizeof g_shims[0]) : NSHIMS_ALWAYS); i++)
+        shims[nshims++] = g_shims[i];
+    for (int i = 0; g_headless && i < g_headless_nshims; i++) shims[nshims++] = g_headless_shims[i];
+    if (g_record) shims[nshims++] = g_record_shim;
     int missing = 0;
     for (int i = 0; i < NMODULES; i++)
-        if (native32_in_guest(g_modules[i].base)) missing += native32_bind(g_modules[i].base, g_shims, nshims);
+        if (native32_in_guest(g_modules[i].base)) missing += native32_bind(g_modules[i].base, shims, nshims);
     if (missing) fprintf(stderr, "warning: %d imports unresolved\n", missing);
 
     uint8_t* b = (uint8_t*)(uintptr_t)g_exe->base;
@@ -539,6 +603,7 @@ int main(int argc, char** argv) {
     }
     if (!SetCurrentDirectoryA(g_system_dir)) { fprintf(stderr, "cannot enter %s\n", g_system_dir); return 1; }
     if (g_watchdog_s) CloseHandle(CreateThread(NULL, 0, watchdog, NULL, 0, NULL));
+    headless_start();
     /* The launcher's own imports attach before it runs (attach() skips an
      * exe's entry point and runs its dependencies' DllMains). */
     if (!attach(g_exe)) return 1;

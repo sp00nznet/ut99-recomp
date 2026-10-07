@@ -21,6 +21,17 @@ versions follow [SemVer](https://semver.org/).
   own throws) and the disasm32 padded-entry fix (docs/bringup.md).
 - `run_lift.py`: catch resume points are labels in their parent's body,
   which gets a landing pad; the shared tables are rewritten only on change.
+- Headless mode: `--headless --record out.mp4 --frames N`, nothing on any
+  screen, the game's frames to ffmpeg at 30 fps (docs/bringup.md 10).
+- The intro renders like the original's. Every float-to-int cast had returned
+  0x80000000 (`_ftol` ran natively on the real FPU; pcrecomp#56), so game time
+  stood still; and the renderer's clipper never saw an edge cross a plane
+  (`xor; jge` mis-lifted; pcrecomp#58).
+- `--native Module.dll` runs a module's original code among the lifted ones,
+  and `--lift-in-native FILE` lifts chosen functions of it (pcrecomp#57);
+  `tools/find_bad_function.py` bisects a module down to the function that
+  breaks it, from headless recordings.
+- Builds go through recomp-netlab (`netlab build ut99-recomp`, clang-cl).
 - The game boots and renders its intro in the software renderer
   (docs/bringup.md 7-9). Code the guest builds at run time (Galaxy's patched
   mixer copies) runs natively: its heap region is made executable on the
