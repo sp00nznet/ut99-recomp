@@ -515,6 +515,9 @@ int main(int argc, char** argv) {
             g_record = rec;
         }
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc) g_record_frames = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--key") && i + 1 < argc) {
+            if (!headless_key_arg(argv[++i])) { fprintf(stderr, "--key wants VK@seconds: %s\n", argv[i]); return 1; }
+        }
         else if (!strcmp(argv[i], "--probe") && i + 1 < argc && g_nprobe < MAX_PROBES)
             g_probe[g_nprobe++] = strtoul(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--native-trace")) native32_trace_native = 1;
@@ -550,6 +553,12 @@ int main(int argc, char** argv) {
     SetDllDirectoryA(g_system_dir);
 
     native32_init();
+    /* Room for the crash report on this thread when the stack itself is what
+     * ran out: without it a stack overflow ends the process with no report. */
+    {
+        ULONG guarantee = 256 * 1024;
+        SetThreadStackGuarantee(&guarantee);
+    }
     AddVectoredExceptionHandler(1, guest_generated_code);
     AddVectoredExceptionHandler(0, crash);
     printf("Unreal Tournament recomp host\n  lifted functions in dispatch: %u\n", recomp_dispatch_count);
@@ -587,7 +596,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < (g_headless ? (int)(sizeof g_shims / sizeof g_shims[0]) : NSHIMS_ALWAYS); i++)
         shims[nshims++] = g_shims[i];
     for (int i = 0; g_headless && i < g_headless_nshims; i++) shims[nshims++] = g_headless_shims[i];
-    if (g_record) shims[nshims++] = g_record_shim;
+    if (g_record || g_headless) shims[nshims++] = g_record_shim;   /* BitBlt: frames, and the viewport for --key */
     int missing = 0;
     for (int i = 0; i < NMODULES; i++)
         if (native32_in_guest(g_modules[i].base)) missing += native32_bind(g_modules[i].base, shims, nshims);

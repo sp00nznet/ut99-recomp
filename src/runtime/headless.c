@@ -38,6 +38,8 @@ static volatile LONG g_frame_count;  /* frames the game has drawn */
 
 #define HL_EXSTYLE (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)
 
+static HWND g_game_hwnd;            /* the window the frames are blitted to: the viewport */
+
 static void shim_CreateWindowExW(void) {
     uint32_t ex = ARG(0), style = ARG(3);
     int top = !(style & WS_CHILD);
@@ -92,6 +94,8 @@ static void grab(HDC src, int sx, int sy, int w, int h) {
 
 static void shim_BitBlt(void) {
     HDC src = (HDC)(uintptr_t)ARG(5);
+    HWND to = WindowFromDC((HDC)(uintptr_t)ARG(0));
+    if (to) g_game_hwnd = to;
     if (g_record && src) grab(src, (int)ARG(6), (int)ARG(7), (int)ARG(3), (int)ARG(4));
     g_eax = BitBlt((HDC)(uintptr_t)ARG(0), (int)ARG(1), (int)ARG(2), (int)ARG(3), (int)ARG(4), src,
                    (int)ARG(6), (int)ARG(7), ARG(8));
@@ -140,7 +144,62 @@ native32_shim_t g_headless_shims[] = {
 const int g_headless_nshims = sizeof g_headless_shims / sizeof g_headless_shims[0];
 native32_shim_t g_record_shim = { "BitBlt", shim_BitBlt };
 
+/* ---- scripted input ------------------------------------------------------
+ * --key VK@S: press and release virtual key VK (decimal or 0x hex, or a name
+ * below) S seconds after start, as window messages to the game's window, which
+ * is how WinDrv reads the keyboard with DirectInput off. Headless only, so it
+ * never reaches a window someone is typing into. */
+typedef struct { uint32_t vk; double at; } key_t;
+static key_t g_keys[64];
+static int g_nkeys;
+
+int headless_key_arg(const char* spec) {
+    static const struct { const char* name; uint32_t vk; } names[] = {
+        { "esc", VK_ESCAPE }, { "enter", VK_RETURN }, { "up", VK_UP }, { "down", VK_DOWN },
+        { "left", VK_LEFT }, { "right", VK_RIGHT }, { "space", VK_SPACE }, { "tab", VK_TAB },
+        { "fire", VK_LBUTTON }, { "altfire", VK_RBUTTON },
+    };
+    const char* at = strchr(spec, '@');
+    if (!at || g_nkeys == 64) return 0;
+    uint32_t vk = 0;
+    for (int i = 0; i < (int)(sizeof names / sizeof *names); i++)
+        if (!_strnicmp(spec, names[i].name, at - spec) && strlen(names[i].name) == (size_t)(at - spec))
+            vk = names[i].vk;
+    if (!vk) vk = strtoul(spec, NULL, 0);
+    if (!vk) return 0;
+    g_keys[g_nkeys].vk = vk;
+    g_keys[g_nkeys++].at = atof(at + 1);
+    return 1;
+}
+
+static DWORD WINAPI key_script(LPVOID unused) {
+    (void)unused;
+    DWORD t0 = GetTickCount();
+    for (int i = 0; i < g_nkeys; i++) {
+        DWORD due = t0 + (DWORD)(g_keys[i].at * 1000);
+        while ((int)(due - GetTickCount()) > 0 || !g_game_hwnd) Sleep(10);
+        if (g_keys[i].vk == VK_LBUTTON || g_keys[i].vk == VK_RBUTTON) {
+            /* fire / altfire: a click in the middle of the viewport */
+            int l = g_keys[i].vk == VK_LBUTTON;
+            RECT rc;
+            GetClientRect(g_game_hwnd, &rc);
+            LPARAM at = MAKELPARAM(rc.right / 2, rc.bottom / 2);
+            PostMessageW(g_game_hwnd, l ? WM_LBUTTONDOWN : WM_RBUTTONDOWN, l ? MK_LBUTTON : MK_RBUTTON, at);
+            Sleep(60);
+            PostMessageW(g_game_hwnd, l ? WM_LBUTTONUP : WM_RBUTTONUP, 0, at);
+        } else {
+            UINT sc = MapVirtualKeyA(g_keys[i].vk, MAPVK_VK_TO_VSC);
+            PostMessageW(g_game_hwnd, WM_KEYDOWN, g_keys[i].vk, 1 | sc << 16);
+            Sleep(60);
+            PostMessageW(g_game_hwnd, WM_KEYUP, g_keys[i].vk, 1 | sc << 16 | 0xC0000000u);
+        }
+        fprintf(stderr, "[input] key 0x%02X at %.1f s\n", g_keys[i].vk, g_keys[i].at);
+    }
+    return 0;
+}
+
 void headless_start(void) {
     InitializeCriticalSection(&g_frame_lock);
     if (g_record) CloseHandle(CreateThread(NULL, 0, recorder, NULL, 0, NULL));
+    if (g_nkeys) CloseHandle(CreateThread(NULL, 0, key_script, NULL, 0, NULL));
 }

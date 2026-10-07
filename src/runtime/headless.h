@@ -12,5 +12,6 @@ extern const int g_headless_nshims;
 extern native32_shim_t g_record_shim;        /* BitBlt, with --record */
 
 void headless_start(void);
+int  headless_key_arg(const char* spec);   /* --key VK@S: 0 if malformed */
 
 #endif

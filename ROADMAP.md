@@ -12,10 +12,14 @@ In order; each is done when its check is in the harness or the docs.
    it, and the first-run wizard instead of skipping it in the ini.
 3. **Headless and `--record`**: done (docs/bringup.md 10), and the README's
    screenshots come from it. Next: scripted input, for the menu and play.
-4. **A match played**: Deathmatch against bots, a map change, a CTF map.
-5. **Conformance harness** (`tools/conformance.py`): boot milestones and lift
+4. **A match played**: Deathmatch against bots, scripted: done (docs/bringup.md
+   15). Next: a match to its frag limit, a map change, CTF, and the HUD's black
+   box.
+5. **Interactive play**: a live window with mouse look (WinDrv's captured
+   mouse), which the presenter will own.
+6. **Conformance harness** (`tools/conformance.py`): boot milestones and lift
    health against `conformance.json`, failing on regression; netlab recipe.
-6. **Setup.cmd**: the Quick start, finding the Steam install, run end to end
+7. **Setup.cmd**: the Quick start, finding the Steam install, run end to end
    from a clean folder.
 
 ## The makeover

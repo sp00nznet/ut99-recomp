@@ -21,6 +21,12 @@ versions follow [SemVer](https://semver.org/).
   own throws) and the disasm32 padded-entry fix (docs/bringup.md).
 - `run_lift.py`: catch resume points are labels in their parent's body,
   which gets a landing pad; the shared tables are rewritten only on change.
+- The main menu and a Deathmatch against bots, driven by `--key VK@S`
+  (`esc`, `enter`, arrows, `fire`, `altfire`). Fire.dll's self-patching asm
+  in `.data` runs natively (pcrecomp#57), and native32's bridge no longer
+  trusts a native callee with ebx/ebp (#59): firing a weapon used to end the
+  process (docs/bringup.md 14-15). Room is reserved for the crash report
+  when the stack runs out.
 - Headless mode: `--headless --record out.mp4 --frames N`, nothing on any
   screen, the game's frames to ffmpeg at 30 fps (docs/bringup.md 10).
 - The intro renders like the original's. Every float-to-int cast had returned

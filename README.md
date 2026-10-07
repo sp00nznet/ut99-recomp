@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up.** Every module lifts with 0 errors. The recompiled dedicated server runs a Deathmatch and answers server-browser queries, and the game itself boots and renders its intro in the software renderer. Menus and play are next.
+## Status: **P1, bring-up: playable in scripted runs.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Interactive play (a live window with mouse look) and the makeover are next.
 
 | Stage | State |
 |---|---|
@@ -25,7 +25,7 @@ target first, and a different route to the same game.
 | Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32) |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
-| The game (`UnrealTournament.exe`, SoftDrv) | **boots and renders the intro like the original**: every DLL attached, title music, Galaxy audio on DirectSound, the flyby through the city with its sky, towers and billboards, about 55 fps. Not yet: the menu, a match ([bringup.md](docs/bringup.md) 7-13) |
+| The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-15). Known: a black box in the HUD's top-left |
 | Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
 | Conformance harness | not yet |
 
@@ -37,6 +37,14 @@ headless (`--headless --record`) with nothing on any screen:
 ![The city](docs/screenshots/intro-city.png)
 
 ![The billboards](docs/screenshots/intro-billboard.png)
+
+The main menu, and a Deathmatch on DM-Deck16][ against four bots:
+
+![Main menu](docs/screenshots/main-menu.png)
+
+| | |
+|---|---|
+| ![In the match](docs/screenshots/dm-deck16-hud.png) | ![The scoreboard](docs/screenshots/dm-deck16-scores.png) |
 
 UT's own Recovery Mode dialog, drawn by the recompiled Window.dll:
 
@@ -112,6 +120,8 @@ build\ut99.exe --run                             # the game
 build\ut99.exe --run --ucc --headless -- server  # UCC: a dedicated server, no window
 build\ut99.exe --run --watchdog 60               # stop after 60 s with a report
 build\ut99.exe --run --log                       # the engine's log on stderr as it is written
+build\ut99.exe --run --headless --record menu.mp4 --frames 750 --key esc@12   # the intro, then the menu
+build\ut99.exe --run --headless --record dm.mp4 --frames 1500 --key fire@8 --key fire@10 -- "DM-Deck16][?game=Botpack.DeathMatchPlus?numbots=4"
 ```
 
 The shipping ini starts in fullscreen through DirectDraw at 640x480x16,
@@ -131,7 +141,8 @@ trace options (`build\ut99.exe --help`).
 Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
 lifter and the runtime must come from the same tree. Until they merge, the
-toolkit needs six pcrecomp branches, merged in one tree:
+toolkit needs seven pcrecomp branches, merged in one tree, the last being
+`fix/native32-bridge-callee-clobbers` (#59):
 `feat/steamstub-2.0` (the launcher's DRM, pcrecomp#52), `feat/eh32` (guest
 C++ exceptions, #53), `feat/disasm32-nop-padded-entries` (a missed static
 constructor, #54), `feat/native32-x87-crt` (`_ftol` and friends, #56),

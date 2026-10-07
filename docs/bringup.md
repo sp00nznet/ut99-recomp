@@ -261,3 +261,44 @@ difftest cases, 206/206). With the whole game relifted:
 ![The city, fixed](screenshots/intro-city.png)
 
 ![The billboards](screenshots/intro-billboard.png)
+
+## 14. The menu, and scripted input
+
+`--key VK@S` (`esc`, `enter`, arrows, `fire`, `altfire`, or a number) posts
+the key, or a click in the middle of the viewport, to the window the frames
+are blitted to, S seconds in. ESC on the intro opens the main menu: UWindow,
+the UnrealScript interface, drawn by the recompiled engine:
+
+![Main menu](screenshots/main-menu.png)
+
+## 15. A Deathmatch with bots
+
+A map URL on the game's own command line starts a match directly:
+
+```
+ut99 --run --headless --record dm.mp4 --frames 1500 --key fire@8 --key fire@10 -- "DM-Deck16][?game=Botpack.DeathMatchPlus?numbots=4"
+```
+
+The first runs died with no report when the player fired. Windows' own
+crash record named the host: `ut99.exe` + 0x4E57, inside native32's bridge,
+just after a native call. Two causes, both fixed in the toolkit:
+
+- Fire.dll (procedural textures) calls three routines at 0x10815DC0,
+  0x10816540 and 0x10816DB0, which are in its `.data`: hand-written asm kept
+  in writable memory, which patches itself. A call into a module outside its
+  code sections now runs natively, the section made executable once
+  (pcrecomp `feat/native32-native-modules`).
+- That asm returns with `ebx` and `ebp` changed: it was only ever called from
+  inline asm that saved everything. The bridge kept its esp anchor in `ebx`
+  and its locals behind the frame register; it now saves both and keeps the
+  anchor in the thread's TEB (`fix/native32-bridge-callee-clobbers`).
+
+With those the match plays: the HUD, weapons, damage, the bots fighting,
+taunting and scoring (2,422 frames drawn in 50 s):
+
+![The HUD](screenshots/dm-deck16-hud.png)
+
+![The scoreboard](screenshots/dm-deck16-scores.png)
+
+Known: a black box in the HUD's top-left, where the original draws nothing
+(a translucent or masked element drawn opaque).
