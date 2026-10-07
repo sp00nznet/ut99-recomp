@@ -7,11 +7,11 @@ In order; each is done when its check is in the harness or the docs.
 1. **UCC runs.** Done: `ut99 --run --ucc -- server` runs a Deathmatch
    server headless and answers queries (docs/bringup.md). Next: a client
    joining it, and bots (`?numbots=`) in a match that ends.
-2. **The launcher boots.** Done to the intro: `UnrealTournament.exe` renders
-   the CityIntro flyby in SoftDrv (docs/bringup.md 9). Next: the menu over
-   it, and the first-run wizard instead of skipping it in the ini.
+2. **The launcher boots.** Done: the intro as the original renders it, and
+   the main menu (docs/bringup.md 9-14). Next: the first-run wizard, instead
+   of skipping it in the ini.
 3. **Headless and `--record`**: done (docs/bringup.md 10), and the README's
-   screenshots come from it. Next: scripted input, for the menu and play.
+   screenshots come from it; `--key` scripts input.
 4. **A match played**: Deathmatch against bots, scripted: done (docs/bringup.md
    15). Next: a match to its frag limit, a map change, CTF, and the HUD's black
    box.
