@@ -13,10 +13,12 @@ In order; each is done when its check is in the harness or the docs.
 3. **Headless and `--record`**: done (docs/bringup.md 10), and the README's
    screenshots come from it; `--key` scripts input.
 4. **A match played**: Deathmatch against bots, scripted: done (docs/bringup.md
-   15), the HUD as the original draws it (16). Next: a match to its frag
-   limit, a map change, CTF, and sound checked against the original's.
-5. **Interactive play**: a live window with mouse look (WinDrv's captured
-   mouse), which the presenter will own.
+   15), the HUD as the original draws it (16). CTF, a match to its end and a
+   map change played by hand (5). Next: those in the harness, and sound
+   checked against the original's.
+5. **Interactive play**: done, by hand: a live window, mouse look and the
+   keyboard, CTF on Facing Worlds, Coret and Command, a match to its end and
+   the next map loaded, a clean quit. Next: the presenter owns the window.
 6. **Conformance harness**: done. `tools/conformance.py` scores 11 boot
    milestones over three headless runs (the intro, a Deathmatch, the
    dedicated server) and lift health against `conformance.json`, failing on

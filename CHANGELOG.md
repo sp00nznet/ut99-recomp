@@ -6,6 +6,9 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Played by hand in a live window: mouse look, Capture the Flag on three
+  maps, a match to its end, map changes and a clean quit, nothing changed in
+  the host for it. `Setup.cmd`'s launcher runs it.
 - `Setup.cmd` (`tools/setup.ps1`): the Quick start in one double-click. It
   checks the tools and asks before installing any, clones pcrecomp on its
   `ut99-integration` branch (or moves a clone there) until the toolkit PRs
