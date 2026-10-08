@@ -300,5 +300,43 @@ taunting and scoring (2,422 frames drawn in 50 s):
 
 ![The scoreboard](screenshots/dm-deck16-scores.png)
 
-Known: a black box in the HUD's top-left, where the original draws nothing
-(a translucent or masked element drawn opaque).
+## 16. The HUD's black box: an MMX op lifted as nothing
+
+The HUD's top-left was a solid black box for most of a match. A reference
+run of the original, in the same match, says what belongs there: the speech
+area, a translucent panel (the world shows through it) with the speaking
+bot's face. The original runs windowed on an offstage monitor;
+`tools/click_original.py` posts it the same clicks `--key fire@S` gives the
+recompiled game:
+
+```
+start py -3 tools\click_original.py 14 17 20
+offstage run --size 1280x720 --record ref.mp4 -- work\ref\System\UnrealTournament.exe "DM-Deck16][?game=Botpack.DeathMatchPlus?numbots=4"
+```
+
+Botpack.u carries its UnrealScript source, and `ChallengeHUD.DrawSpeechArea`
+draws the panel every frame, `STY_Translucent`, in `HUDColor *
+MessageFadeTime`: with no message showing, translucent black, which adds
+nothing. Ours drew it opaque, so black.
+
+`--native SoftDrv.dll` made the box go away; SoftDrv native with only
+`DrawTile` lifted (`--lift-in-native`, one address) brought it back. Its
+translucent span loop is one MMX instruction per pixel, `paddusb mm1, mm2`
+(texel plus screen, each channel stopping at 255), and the lift had it as
+
+```c
+; /* UNIMPLEMENTED: paddusb mm1, mm2 */
+```
+
+so the texel was stored alone. lift32 had MMX's word and dword ops but not
+its byte or unsigned-saturating ones: 6,801 `paddusb` sites in SoftDrv, all
+silent, and the lift still said 0 errors. pcrecomp `feat/lift32-mmx-byte-ops`
+adds those thirteen, and `run_lift.py` now prints every instruction lifted as
+nothing, per module. What is left is Galaxy's SSE and 3DNow! mixers, and a
+few decodes of data (`das`, `arpl`, `bound`) that never run.
+
+The original, then the recompiled game, both at a bot's first frag:
+
+| | |
+|---|---|
+| ![The original](screenshots/original-dm-hud.png) | ![Recompiled](screenshots/dm-deck16-hud.png) |

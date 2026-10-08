@@ -19,6 +19,7 @@ disassembler pass names them, and an unresolved slot answers eax = 0.
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -81,7 +82,7 @@ def lift_module(name, split):
     os.makedirs(out)
     starts = {a for a in byaddr if byaddr[a].get('entry_kind') != 'alias'}
     starts -= find_splits(md, code, cs, ce, starts)   # still dispatchable, just not a wall
-    entries, chunk, idx, errors, dirty, ehs = [], [], 0, 0, 0, 0
+    entries, chunk, idx, errors, dirty, ehs, unimpl = [], [], 0, 0, 0, 0, {}
     # Where a function resumes after its own catch blocks. Nothing branches
     # there (the catch funclet returns the address), so the catalog often
     # starts a function at it and the parent's body stops short: the resume
@@ -124,6 +125,8 @@ def lift_module(name, split):
             except Exception as e:                  # noqa: BLE001 -- counted, not hidden
                 body = '/* ERROR %s: %s */\nvoid %s(void) { }\n' % (fname, e, fname)
                 errors += 1
+            for m in re.findall(r'UNIMPLEMENTED: (\w+)', body):   # lifted as a no-op: says so
+                unimpl[m] = unimpl.get(m, 0) + 1
             chunk.append((body, addr, fname))
             entries.append(addr)
             if len(chunk) >= split:
@@ -139,8 +142,10 @@ def lift_module(name, split):
     json.dump(sorted(entries), open(os.path.join(WORK, name + '.entries.json'), 'w'))
     print('    %s: lifted %d (+%d outside the catalog), errors %d, no terminator %d, %d catch, %d files'
           % (name, len(entries), added, errors, dirty, ehs, idx), flush=True)
+    if unimpl:
+        print('      unimplemented: ' + ' '.join('%s %d' % kv for kv in sorted(unimpl.items(), key=lambda kv: -kv[1])))
     return {'lifted': len(entries), 'added': added, 'errors': errors, 'no_terminator': dirty,
-            'catch': ehs, 'files': idx}
+            'catch': ehs, 'files': idx, 'unimplemented': unimpl}
 
 
 def write_tables():
@@ -184,8 +189,9 @@ def main():
     json.dump(stats, open(stats_path, 'w'), indent=1)
     n = write_tables()
     print('=' * 60)
-    print('  %d functions in the dispatch table, lift errors %d, %.0fs'
-          % (n, sum(s['errors'] for s in stats.values()), time.time() - t0))
+    print('  %d functions in the dispatch table, lift errors %d, unimplemented instructions %d, %.0fs'
+          % (n, sum(s['errors'] for s in stats.values()),
+             sum(sum(s.get('unimplemented', {}).values()) for s in stats.values()), time.time() - t0))
     print('=' * 60)
 
 

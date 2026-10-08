@@ -6,6 +6,14 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Translucency in the software renderer: the HUD's speech area is the
+  original's translucent panel, not a black box. SoftDrv's span loops blend
+  with MMX `paddusb`, which lifted as nothing (pcrecomp#61). `run_lift.py`
+  counts every instruction lifted as nothing, per module
+  (docs/bringup.md 16).
+- `tools/click_original.py`: scripted clicks into the original game, for
+  reference recordings under offstage; `tools/disasm_at.py`: a module's code
+  at a VA, past its incremental-link thunk.
 - The pipeline for the Steam build (v436): `tools/rebase.py` unwraps the
   SteamStub 2.0 launcher (needs pcrecomp `feat/steamstub-2.0`) and moves the
   four DLLs whose linked bases collide; `tools/catalog.py` runs disasm32 on

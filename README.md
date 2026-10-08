@@ -22,10 +22,10 @@ target first, and a different route to the same game.
 |---|---|
 | P0: pick the build | Steam v436 (app 13240): `UnrealTournament.exe` wrapped in SteamStub 2.0, unwrapped statically; 12 DLLs, four rebased to fit ([RECON.md](docs/RECON.md)) |
 | Function catalog (`tools/catalog.py`) | ~37,000 functions across 14 modules, 65-95% of each `.text`; no RTTI in this build, exports seed it |
-| Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32) |
+| Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32); instructions lifted as nothing are counted, and only Galaxy's SSE/3DNow! mixers have any that run |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
-| The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-15). Known: a black box in the HUD's top-left |
+| The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-16); the HUD matches the original's |
 | Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
 | Conformance harness | not yet |
 
@@ -141,8 +141,9 @@ trace options (`build\ut99.exe --help`).
 Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
 lifter and the runtime must come from the same tree. Until they merge, the
-toolkit needs seven pcrecomp branches, merged in one tree, the last being
-`fix/native32-bridge-callee-clobbers` (#59):
+toolkit needs eight pcrecomp branches, merged in one tree:
+`fix/native32-bridge-callee-clobbers` (#59), `feat/lift32-mmx-byte-ops`
+(translucency in the software renderer, #61),
 `feat/steamstub-2.0` (the launcher's DRM, pcrecomp#52), `feat/eh32` (guest
 C++ exceptions, #53), `feat/disasm32-nop-padded-entries` (a missed static
 constructor, #54), `feat/native32-x87-crt` (`_ftol` and friends, #56),
