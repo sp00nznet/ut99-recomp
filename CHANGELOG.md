@@ -6,6 +6,10 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- The launcher runs UT's OpenGL renderer, recompiled, on its own ini pair:
+  `tools/hd_ini.py` writes `UTRecomp.ini` (OpenGL, a 16:9 window) and
+  `UTRecompUser.ini` (Hor+ field of view), passed as `INI=`/`USERINI=`; the
+  stock ini keeps the software renderer for headless runs (docs/bringup.md 17).
 - Played by hand in a live window: mouse look, Capture the Flag on three
   maps, a match to its end, map changes and a clean quit, nothing changed in
   the host for it. `Setup.cmd`'s launcher runs it.

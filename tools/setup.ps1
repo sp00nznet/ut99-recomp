@@ -237,14 +237,19 @@ Say "  $($binds.Count) modules bound, 0 unresolved."
 
 # ---------------------------------------------------------------- launcher
 Step 8 "Making the launcher"
+# Its own ini pair: UT's OpenGL renderer, a widescreen window, Hor+ FOV. The
+# game saves its settings back into them, so they are made once (-Force remakes).
+if ((Test-Path 'game\System\UTRecomp.ini') -and -not $Force) { Say "  game\System\UTRecomp.ini kept (your settings)." }
+else { Run "Writing UTRecomp.ini and UTRecompUser.ini" ($pyargs + @('tools\hd_ini.py')) }
 $lnk = Join-Path $Root 'Unreal Tournament (recomp).cmd'
 Set-Content -Path $lnk -Encoding ASCII -Value @(
   '@echo off',
-  'rem Runs the recompiled game, windowed. A crashed run leaves System\Running.ini',
-  'rem and the next start offers Recovery Mode; that file is removed first.',
+  'rem Runs the recompiled game, windowed, on its own ini pair (tools\hd_ini.py).',
+  'rem A crashed run leaves System\Running.ini and the next start offers Recovery',
+  'rem Mode; that file is removed first.',
   'cd /d "%~dp0"',
   'del /q game\System\Running.ini 2>nul',
-  'start "" build\ut99.exe --run')
+  'start "" build\ut99.exe --run -- INI=UTRecomp.ini USERINI=UTRecompUser.ini')
 Say "  $lnk"
 
 Write-Host ""

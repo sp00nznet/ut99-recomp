@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The makeover is next.
+## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view; our own Direct3D 11 renderer is next.
 
 | Stage | State |
 |---|---|
@@ -46,7 +46,11 @@ The main menu, and a Deathmatch on DM-Deck16][ against four bots:
 |---|---|
 | ![In the match](docs/screenshots/dm-deck16-hud.png) | ![The scoreboard](docs/screenshots/dm-deck16-scores.png) |
 
-Capture the Flag, played by hand in a live window (Facing Worlds, Coret):
+UT's OpenGL renderer, recompiled, at 1600x900 with a Hor+ field of view (the launcher's settings):
+
+![OpenGL, 1600x900](docs/screenshots/opengl-dm-1600x900.png)
+
+Capture the Flag, played by hand in a live window, software renderer (Facing Worlds, Coret):
 
 | | |
 |---|---|
@@ -73,8 +77,9 @@ your machine from your copy and is never distributed.
    windowed, then unwraps, catalogs, lifts and builds. 40 to 80 minutes the
    first time; a rerun skips finished steps. If it stops, it says why in one
    sentence and keeps the details in `setup.log`.
-3. Double-click **`Unreal Tournament (recomp).cmd`**: the game in a window,
-   in the software renderer.
+3. Double-click **`Unreal Tournament (recomp).cmd`**: the game in a 16:9
+   window in UT's OpenGL renderer, on its own `game\System\UTRecomp.ini`
+   (`py -3 tools\hd_ini.py 1920x1080` remakes it at another size).
 
 ### Step by step
 

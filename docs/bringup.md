@@ -343,3 +343,31 @@ The original, then the recompiled game, both at a bot's first frag:
 | | |
 |---|---|
 | ![The original](screenshots/original-dm-hud.png) | ![Recompiled](screenshots/dm-deck16-hud.png) |
+
+## 17. Played by hand, then the hardware renderer
+
+The launcher, at the console: mouse look and the keyboard through WinDrv as
+it is, Capture the Flag on Facing Worlds, Coret and Command, a match to its
+end, the next map, a clean quit. Nothing in the host changed for it. The
+software renderer at 800x600 felt slow.
+
+UT's own OpenGL renderer (`OpenGlDrv.dll`), lifted with the rest since the
+start, runs as it is: it loads `opengl32` through `LoadLibrary` and
+`GetProcAddress`, the host hands it the real driver, and every GL call from
+lifted code is an indirect call into native code through the bridge. On an
+RTX 5070 (GL 4.6) it draws the intro and a Deathmatch at 1600x900 as the
+original's OpenGL renderer does: filtered textures, 32-bit colour, the HUD
+translucent.
+
+The launcher runs it on its own ini pair, so the stock ini stays on the
+software renderer that headless capture and the conformance harness read
+from: `tools/hd_ini.py` writes `UTRecomp.ini` (OpenGL, a 16:9 window at 80%
+of the screen) and `UTRecompUser.ini` (a Hor+ field of view: UT's 90 degrees
+is horizontal at 4:3, so 106.26 at 16:9 keeps the vertical view), and the
+launcher passes them as `INI=` and `USERINI=`.
+
+![OpenGL, 1600x900, Hor+](screenshots/opengl-dm-1600x900.png)
+
+Not yet compared: the pre-match spectator camera once showed a black wedge
+over half the view in OpenGL; the original's camera started somewhere else
+that run.
