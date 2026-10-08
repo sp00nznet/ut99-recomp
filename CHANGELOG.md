@@ -6,6 +6,10 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `--msaa N` and `--aniso N`: anti-aliasing and trilinear, anisotropic
+  texture filtering for UT's OpenGL renderer, by wrapping the GL functions it
+  finds with `GetProcAddress` (`src/runtime/glfx.c`); the launcher passes
+  `--msaa 8 --aniso 16` (docs/bringup.md 18).
 - The launcher runs UT's OpenGL renderer, recompiled, on its own ini pair:
   `tools/hd_ini.py` writes `UTRecomp.ini` (OpenGL, a 16:9 window) and
   `UTRecompUser.ini` (Hor+ field of view), passed as `INI=`/`USERINI=`; the

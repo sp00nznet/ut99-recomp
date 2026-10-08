@@ -376,3 +376,23 @@ Played by hand on the launcher's OpenGL settings: Assault on Overlord (twice,
 both sides) and Guardia, and the start of the ladder, in a 16:9 window,
 with no slowness. The software renderer's slowness was the CPU drawing
 800x600, not the host.
+
+## 18. Anti-aliasing and anisotropic filtering, from the host
+
+OpenGlDrv finds every GL, WGL and pixel-format function with
+`GetProcAddress`, and the host already answers that call for every guest
+module, so it hands the renderer a wrapper for three of them
+(`src/runtime/glfx.c`, off unless asked for):
+
+- `--msaa N`: `SetPixelFormat` gets a multisample format with N samples from
+  `wglChoosePixelFormatARB` (found once through a throwaway window and
+  context). UT asks for 32-bit depth, which no multisample window format on
+  the RTX 5070 has; the ARB attribute is a minimum, so 24.
+- `--aniso N`: a mipmapped texture's minification filter becomes trilinear,
+  with N-times anisotropic filtering, in place of OpenGlDrv's bilinear with
+  the nearest mip.
+
+The launcher passes `--msaa 8 --aniso 16`. The same pre-match frame, 4x, the
+game's own pixel format and then 8x multisampling:
+
+![MSAA, before and after](screenshots/msaa-edge-4x.png)

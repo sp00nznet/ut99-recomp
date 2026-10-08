@@ -30,6 +30,7 @@ endif()
 add_executable(ut99
   src/runtime/host.c
   src/runtime/headless.c
+  src/runtime/glfx.c
   ${PCRECOMP}/runtime/native32/native32.c
   ${PCRECOMP}/runtime/recomp32/image_loader.c
   ${PCRECOMP}/runtime/recomp32/recomp_trace.c
@@ -49,8 +50,8 @@ target_link_options(ut99 PRIVATE /BASE:0x60000000 /FIXED:NO /DYNAMICBASE:NO
                                 /MANIFESTUAC:NO)
 set(GEN_OPT "/O2" CACHE STRING "optimisation for the generated C")
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS "/w;${GEN_OPT}")
-set_source_files_properties(src/runtime/host.c src/runtime/headless.c PROPERTIES COMPILE_OPTIONS "/W3")
-target_link_libraries(ut99 PRIVATE user32 gdi32 kernel32 winmm)
+set_source_files_properties(src/runtime/host.c src/runtime/headless.c src/runtime/glfx.c PROPERTIES COMPILE_OPTIONS "/W3")
+target_link_libraries(ut99 PRIVATE user32 gdi32 kernel32 winmm opengl32)
 
 option(UT99_TRACE "record a ring buffer of lifted function entries" OFF)
 if(UT99_TRACE)
