@@ -22,7 +22,7 @@ target first, and a different route to the same game.
 |---|---|
 | P0: pick the build | Steam v436 (app 13240): `UnrealTournament.exe` wrapped in SteamStub 2.0, unwrapped statically; 12 DLLs, four rebased to fit ([RECON.md](docs/RECON.md)) |
 | Function catalog (`tools/catalog.py`) | ~37,000 functions across 14 modules, 65-95% of each `.text`; no RTTI in this build, exports seed it |
-| Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32); instructions lifted as nothing are counted, and only Galaxy's SSE/3DNow! mixers have any that run |
+| Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32); instructions lifted as nothing are counted, and the only one that still runs is Galaxy's SSE probe, which needs no result |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
 | The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-16); the HUD matches the original's |

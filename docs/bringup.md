@@ -332,8 +332,11 @@ so the texel was stored alone. lift32 had MMX's word and dword ops but not
 its byte or unsigned-saturating ones: 6,801 `paddusb` sites in SoftDrv, all
 silent, and the lift still said 0 errors. pcrecomp `feat/lift32-mmx-byte-ops`
 adds those thirteen, and `run_lift.py` now prints every instruction lifted as
-nothing, per module. What is left is Galaxy's SSE and 3DNow! mixers, and a
-few decodes of data (`das`, `arpl`, `bound`) that never run.
+nothing, per module. What is left never runs lifted: Galaxy's SSE and
+3DNow! mixers (it runs patched copies of them from its heap, natively; with
+the twelve trapped under `--native Galaxy.dll --lift-in-native`, only its
+SSE probe, a `movaps` inside a try, is ever entered), and a few decodes of
+data (`das`, `arpl`, `bound`).
 
 The original, then the recompiled game, both at a bot's first frag:
 

@@ -14,8 +14,7 @@ In order; each is done when its check is in the harness or the docs.
    screenshots come from it; `--key` scripts input.
 4. **A match played**: Deathmatch against bots, scripted: done (docs/bringup.md
    15), the HUD as the original draws it (16). Next: a match to its frag
-   limit, a map change, CTF; Galaxy's SSE and 3DNow! mixer paths, still
-   lifted as nothing (sound is not checked yet).
+   limit, a map change, CTF, and sound checked against the original's.
 5. **Interactive play**: a live window with mouse look (WinDrv's captured
    mouse), which the presenter will own.
 6. **Conformance harness** (`tools/conformance.py`): boot milestones and lift
