@@ -57,6 +57,19 @@ holding `System\UnrealTournament.exe`). Nothing from the game is in this
 repository and nothing is downloaded for you. The lifted C is generated on
 your machine from your copy and is never distributed.
 
+### Quick start
+
+1. Download this repository (Code → Download ZIP) and unzip it anywhere.
+2. Double-click **`Setup.cmd`**. It checks for Python, the Python packages,
+   pcrecomp, Visual Studio, CMake and Ninja, and asks before installing
+   anything that is missing. It finds Unreal Tournament in your Steam library
+   (or asks for the folder), copies it into `game\` and sets it to start
+   windowed, then unwraps, catalogs, lifts and builds. 40 to 80 minutes the
+   first time; a rerun skips finished steps. If it stops, it says why in one
+   sentence and keeps the details in `setup.log`.
+3. Double-click **`Unreal Tournament (recomp).cmd`**. Interactive play (mouse
+   look in a live window) is not finished yet (ROADMAP).
+
 ### Step by step
 
 Prerequisites: Windows 10/11, **Python 3.10+** (`py -3 --version`), **git**,
@@ -66,7 +79,7 @@ and the pcrecomp toolkit cloned **beside** this repository as `tools`:
 
 ```
 some-folder\
-  tools\        <- git clone https://github.com/sp00nznet/pcrecomp tools
+  tools\        <- git clone --branch ut99-integration https://github.com/sp00nznet/pcrecomp tools
   ut99\         <- this repository
 ```
 
@@ -142,7 +155,9 @@ trace options (`build\ut99.exe --help`).
 Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
 lifter and the runtime must come from the same tree. Until they merge, the
-toolkit needs eight pcrecomp branches, merged in one tree:
+toolkit needs eight pcrecomp branches, merged in one tree; pcrecomp's
+`ut99-integration` branch is that tree (`git clone --branch ut99-integration
+https://github.com/sp00nznet/pcrecomp tools`, which is what Setup.cmd does):
 `fix/native32-bridge-callee-clobbers` (#59), `feat/lift32-mmx-byte-ops`
 (translucency in the software renderer, #61),
 `feat/steamstub-2.0` (the launcher's DRM, pcrecomp#52), `feat/eh32` (guest

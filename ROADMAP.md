@@ -23,8 +23,10 @@ In order; each is done when its check is in the harness or the docs.
    regression; `netlab qa ut99-recomp` runs it. Next: frames compared with
    the original's (`tools/click_original.py` records it), not only "lit" and
    "translucent".
-7. **Setup.cmd**: the Quick start, finding the Steam install, run end to end
-   from a clean folder.
+7. **Setup.cmd**: done. The Quick start in one double-click, from a clean
+   folder: tools checked, the toolkit cloned on its `ut99-integration` branch
+   until #52-#61 merge, the Steam install found and copied, then the
+   pipeline and a launcher.
 
 ## The makeover
 

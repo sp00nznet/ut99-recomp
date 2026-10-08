@@ -6,6 +6,12 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `Setup.cmd` (`tools/setup.ps1`): the Quick start in one double-click. It
+  checks the tools and asks before installing any, clones pcrecomp on its
+  `ut99-integration` branch (or moves a clone there) until the toolkit PRs
+  merge, finds UT in the Steam library and copies it into `game\` set to run
+  windowed, then rebases, catalogs, lifts, builds, checks every module binds
+  and writes `Unreal Tournament (recomp).cmd`.
 - The conformance harness, `tools/conformance.py`: 11 boot milestones from
   three headless runs (the intro reaching the city, a Deathmatch with a
   translucent HUD and no crash, the dedicated server answering a query) and
