@@ -371,3 +371,8 @@ launcher passes them as `INI=` and `USERINI=`.
 Not yet compared: the pre-match spectator camera once showed a black wedge
 over half the view in OpenGL; the original's camera started somewhere else
 that run.
+
+Played by hand on the launcher's OpenGL settings: Assault on Overlord (twice,
+both sides) and Guardia, and the start of the ladder, in a 16:9 window,
+with no slowness. The software renderer's slowness was the CPU drawing
+800x600, not the host.
