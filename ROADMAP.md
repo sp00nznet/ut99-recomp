@@ -17,8 +17,12 @@ In order; each is done when its check is in the harness or the docs.
    limit, a map change, CTF, and sound checked against the original's.
 5. **Interactive play**: a live window with mouse look (WinDrv's captured
    mouse), which the presenter will own.
-6. **Conformance harness** (`tools/conformance.py`): boot milestones and lift
-   health against `conformance.json`, failing on regression; netlab recipe.
+6. **Conformance harness**: done. `tools/conformance.py` scores 11 boot
+   milestones over three headless runs (the intro, a Deathmatch, the
+   dedicated server) and lift health against `conformance.json`, failing on
+   regression; `netlab qa ut99-recomp` runs it. Next: frames compared with
+   the original's (`tools/click_original.py` records it), not only "lit" and
+   "translucent".
 7. **Setup.cmd**: the Quick start, finding the Steam install, run end to end
    from a clean folder.
 

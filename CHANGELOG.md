@@ -6,6 +6,12 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- The conformance harness, `tools/conformance.py`: 11 boot milestones from
+  three headless runs (the intro reaching the city, a Deathmatch with a
+  translucent HUD and no crash, the dedicated server answering a query) and
+  lift health (errors, bodies with no terminator, instructions lifted as
+  nothing), against `conformance.json`; a regression fails. netlab runs it
+  as the recipe's QA.
 - Translucency in the software renderer: the HUD's speech area is the
   original's translucent panel, not a black box. SoftDrv's span loops blend
   with MMX `paddusb`, which lifted as nothing (pcrecomp#61). `run_lift.py`

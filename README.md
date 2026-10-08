@@ -27,7 +27,7 @@ target first, and a different route to the same game.
 | Dedicated server (`--ucc -- server`) | **runs**: DM-Deck16][ up for play, the UnrealScript VM ticking, the query port answering (`tools/query.py`) ([bringup.md](docs/bringup.md)) |
 | The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-16); the HUD matches the original's |
 | Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
-| Conformance harness | not yet |
+| Conformance harness (`tools/conformance.py`, `netlab qa ut99-recomp`) | **11/11** boot milestones over three headless runs (intro, Deathmatch, dedicated server) and lift health, against `conformance.json` |
 
 ## Screenshots
 
@@ -121,6 +121,7 @@ build\ut99.exe --run --ucc --headless -- server  # UCC: a dedicated server, no w
 build\ut99.exe --run --watchdog 60               # stop after 60 s with a report
 build\ut99.exe --run --log                       # the engine's log on stderr as it is written
 build\ut99.exe --run --headless --record menu.mp4 --frames 750 --key esc@12   # the intro, then the menu
+py -3 tools\conformance.py                       # the harness: 11 milestones and lift health, ~3 minutes
 build\ut99.exe --run --headless --record dm.mp4 --frames 1500 --key fire@8 --key fire@10 -- "DM-Deck16][?game=Botpack.DeathMatchPlus?numbots=4"
 ```
 
