@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing and 16x anisotropic filtering; our own Direct3D 11 renderer is next.
+## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering and a 200 fps cap; our own Direct3D 11 renderer is next.
 
 | Stage | State |
 |---|---|
@@ -143,6 +143,7 @@ build\ut99.exe                                   # dry run: map and bind every m
 build\ut99.exe --run                             # the game
 build\ut99.exe --run --ucc --headless -- server  # UCC: a dedicated server, no window
 build\ut99.exe --run --msaa 8 --aniso 16       # OpenGL renderer: anti-aliasing, anisotropic filtering
+build\ut99.exe --run --fps-cap 144 --vsync 1 --show-fps   # OpenGL renderer: frame pacing
 build\ut99.exe --run --watchdog 60               # stop after 60 s with a report
 build\ut99.exe --run --log                       # the engine's log on stderr as it is written
 build\ut99.exe --run --headless --record menu.mp4 --frames 750 --key esc@12   # the intro, then the menu

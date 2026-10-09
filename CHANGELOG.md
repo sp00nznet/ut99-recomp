@@ -6,6 +6,9 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Frame pacing for the OpenGL renderer: `--vsync 0|1`, `--fps-cap N` and
+  `--show-fps`, by wrapping `SwapBuffers`; the launcher caps at 200 fps
+  (docs/bringup.md 19).
 - `--msaa N` and `--aniso N`: anti-aliasing and trilinear, anisotropic
   texture filtering for UT's OpenGL renderer, by wrapping the GL functions it
   finds with `GetProcAddress` (`src/runtime/glfx.c`); the launcher passes

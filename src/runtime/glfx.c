@@ -7,6 +7,11 @@
  *               (wglChoosePixelFormatARB), so every polygon edge is smoothed.
  *   --aniso N   every mipmapped texture is filtered trilinear and N-times
  *               anisotropic, instead of the driver's nearest-mip bilinear.
+ *   --vsync 0|1 the swap interval, set on the first frame (the driver's own
+ *               otherwise).
+ *   --fps-cap N at most N frames a second: UT's physics and input go wrong
+ *               at very high frame rates, and a GPU now draws it at hundreds.
+ *   --show-fps  the frame rate on stderr every 5 s.
  *
  * Off unless asked for: the stock game keeps the original's behaviour.
  */
@@ -14,14 +19,17 @@
 #include <windows.h>
 #include <stdio.h>
 #include <string.h>
+#include <mmsystem.h>
 
 #include "glfx.h"
 
-int g_msaa, g_aniso;
+int g_msaa, g_aniso, g_vsync = -1, g_fps_cap, g_show_fps;
 
 typedef BOOL(WINAPI* set_pf_t)(HDC, int, const PIXELFORMATDESCRIPTOR*);
 typedef void(WINAPI* texparami_t)(unsigned, unsigned, int);
 typedef void(WINAPI* texparamf_t)(unsigned, unsigned, float);
+typedef BOOL(WINAPI* swap_t)(HDC);
+typedef BOOL(WINAPI* swap_interval_t)(int);
 typedef BOOL(WINAPI* choose_pf_arb_t)(HDC, const int*, const float*, UINT, int*, UINT*);
 
 #define GL_TEXTURE_MIN_FILTER 0x2801
@@ -33,6 +41,7 @@ typedef BOOL(WINAPI* choose_pf_arb_t)(HDC, const int*, const float*, UINT, int*,
 static set_pf_t real_set_pf;
 static texparami_t real_texparami;
 static texparamf_t real_texparamf;
+static swap_t real_swap;
 
 /* ---- multisampling --------------------------------------------------------
  * wglChoosePixelFormatARB needs a current context to be found, and a window's
@@ -101,6 +110,46 @@ static void WINAPI fx_glTexParameterf(unsigned target, unsigned pname, float v) 
     real_texparamf(target, pname, v);
 }
 
+/* ---- frame pacing ---------------------------------------------------------
+ * After the swap: wait out the rest of the frame's 1/cap s, sleeping in 1 ms
+ * steps while more than 2 ms remain and spinning the last of it, so the cap is
+ * even rather than rounded to the scheduler's tick. */
+static BOOL WINAPI fx_SwapBuffers(HDC dc) {
+    static LARGE_INTEGER freq, next, report;
+    static int frames;
+    if (!freq.QuadPart) {
+        QueryPerformanceFrequency(&freq);
+        QueryPerformanceCounter(&next);
+        report = next;
+        timeBeginPeriod(1);
+        swap_interval_t si = (swap_interval_t)wglGetProcAddress("wglSwapIntervalEXT");
+        if (g_vsync >= 0 && si) si(g_vsync);
+        fprintf(stderr, "[glfx] frames: vsync %s, cap %d fps (0: none)\n",
+                g_vsync < 0 ? "the driver's" : g_vsync ? "on" : "off", g_fps_cap);
+    }
+    BOOL r = real_swap(dc);
+    LARGE_INTEGER now;
+    QueryPerformanceCounter(&now);
+    if (g_fps_cap) {
+        next.QuadPart += freq.QuadPart / g_fps_cap;
+        if (next.QuadPart < now.QuadPart - freq.QuadPart / 10) next = now;   /* a hitch: don't catch up */
+        for (;;) {
+            QueryPerformanceCounter(&now);
+            LONGLONG left = next.QuadPart - now.QuadPart;
+            if (left <= 0) break;
+            if (left > freq.QuadPart / 500) Sleep(1);
+            else YieldProcessor();
+        }
+    }
+    frames++;
+    if (g_show_fps && now.QuadPart - report.QuadPart >= 5 * freq.QuadPart) {
+        fprintf(stderr, "[fps] %.1f\n", frames * (double)freq.QuadPart / (now.QuadPart - report.QuadPart));
+        frames = 0;
+        report = now;
+    }
+    return r;
+}
+
 /* ---- the swap -------------------------------------------------------------
  * GetProcAddress from the guest: a wrapper in place of the real function,
  * which it keeps to call. */
@@ -109,6 +158,10 @@ uint32_t glfx_proc(HMODULE h, const char* name, uint32_t real) {
     if (g_msaa && !strcmp(name, "SetPixelFormat")) {
         real_set_pf = (set_pf_t)(uintptr_t)real;
         return (uint32_t)(uintptr_t)fx_SetPixelFormat;
+    }
+    if ((g_vsync >= 0 || g_fps_cap || g_show_fps) && !strcmp(name, "SwapBuffers")) {
+        real_swap = (swap_t)(uintptr_t)real;
+        return (uint32_t)(uintptr_t)fx_SwapBuffers;
     }
     if (g_aniso && !strcmp(name, "glTexParameteri")) {
         real_texparami = (texparami_t)(uintptr_t)real;

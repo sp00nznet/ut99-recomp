@@ -518,6 +518,9 @@ int main(int argc, char** argv) {
         }
         else if (!strcmp(argv[i], "--msaa") && i + 1 < argc) g_msaa = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--aniso") && i + 1 < argc) g_aniso = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--vsync") && i + 1 < argc) g_vsync = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--fps-cap") && i + 1 < argc) g_fps_cap = strtol(argv[++i], NULL, 0);
+        else if (!strcmp(argv[i], "--show-fps")) g_show_fps = 1;
         else if (!strcmp(argv[i], "--frames") && i + 1 < argc) g_record_frames = strtol(argv[++i], NULL, 0);
         else if (!strcmp(argv[i], "--key") && i + 1 < argc) {
             if (!headless_key_arg(argv[++i])) { fprintf(stderr, "--key wants VK@seconds: %s\n", argv[i]); return 1; }
@@ -538,6 +541,7 @@ int main(int argc, char** argv) {
                    "            [--game game] [--rebased work\\rebased]\n"
                    "            [--log] [--native Module.dll] [--probe VA] [--native-trace] [--callbacks] [-- game arguments]\n"
                    "            [--msaa N] [--aniso N]   OpenGL renderer: N-sample anti-aliasing, N-times anisotropic\n"
+                   "            [--vsync 0|1] [--fps-cap N] [--show-fps]   OpenGL renderer: frame pacing\n"
                    "  ut99 --run                                   the game\n"
                    "  ut99 --run --headless --record out.mp4 --frames 300   no window; 10 s of video\n"
                    "  ut99 --run --ucc -- server DM-Deck16][        UCC: a dedicated server, no window\n");

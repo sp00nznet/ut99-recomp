@@ -396,3 +396,14 @@ The launcher passes `--msaa 8 --aniso 16`. The same pre-match frame, 4x, the
 game's own pixel format and then 8x multisampling:
 
 ![MSAA, before and after](screenshots/msaa-edge-4x.png)
+
+## 19. Frame pacing
+
+OpenGlDrv gets `SwapBuffers` from GDI32 the same way, so the host wraps it
+too: `--vsync 0|1` sets the swap interval on the first frame, `--fps-cap N`
+holds the rate to N (sleeping in 1 ms steps, then spinning the last 2 ms),
+and `--show-fps` prints the rate every 5 s. In a Deathmatch at 1536x864
+with 8x MSAA on the RTX 5070, on a machine shared with other work:
+uncapped, 85 to 218 fps and never steady; `--fps-cap 120`, 117.4 to 120.2.
+UT's physics and input go wrong at very high frame rates, so the launcher
+passes `--fps-cap 200` and leaves vsync to the driver.

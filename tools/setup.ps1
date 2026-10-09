@@ -249,7 +249,7 @@ Set-Content -Path $lnk -Encoding ASCII -Value @(
   'rem Mode; that file is removed first.',
   'cd /d "%~dp0"',
   'del /q game\System\Running.ini 2>nul',
-  'start "" build\ut99.exe --run --msaa 8 --aniso 16 -- INI=UTRecomp.ini USERINI=UTRecompUser.ini')
+  'start "" build\ut99.exe --run --msaa 8 --aniso 16 --fps-cap 200 -- INI=UTRecomp.ini USERINI=UTRecompUser.ini')
 Say "  $lnk"
 
 Write-Host ""
