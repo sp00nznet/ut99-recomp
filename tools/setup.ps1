@@ -237,10 +237,14 @@ Say "  $($binds.Count) modules bound, 0 unresolved."
 
 # ---------------------------------------------------------------- launcher
 Step 8 "Making the launcher"
-# Its own ini pair: UT's OpenGL renderer, a widescreen window, Hor+ FOV. The
-# game saves its settings back into them, so they are made once (-Force remakes).
-if ((Test-Path 'game\System\UTRecomp.ini') -and -not $Force) { Say "  game\System\UTRecomp.ini kept (your settings)." }
-else { Run "Writing UTRecomp.ini and UTRecompUser.ini" ($pyargs + @('tools\hd_ini.py')) }
+# The Mod menu's "Recomp Graphics" window and the scaled HUD fonts: our
+# UnrealScript (mod\RecompMenu), compiled by the game's own UCC.exe.
+Run "Building RecompMenu.u (the Mod menu's Recomp Graphics)" ($pyargs + @('tools\build_mod.py'))
+# Its own ini pair: UT's OpenGL renderer, a widescreen window, Hor+ FOV, the
+# rendering settings. The game saves your changes into them, so a rerun only
+# adds what is missing (-Force starts them over).
+$reset = @(); if ($Force) { $reset = @('--reset') }
+Run "Writing UTRecomp.ini and UTRecompUser.ini" ($pyargs + @('tools\hd_ini.py') + $reset)
 $lnk = Join-Path $Root 'Unreal Tournament (recomp).cmd'
 Set-Content -Path $lnk -Encoding ASCII -Value @(
   '@echo off',
@@ -249,7 +253,7 @@ Set-Content -Path $lnk -Encoding ASCII -Value @(
   'rem Mode; that file is removed first.',
   'cd /d "%~dp0"',
   'del /q game\System\Running.ini 2>nul',
-  'start "" build\ut99.exe --run --msaa 8 --aniso 16 --fps-cap 200 -- INI=UTRecomp.ini USERINI=UTRecompUser.ini')
+  'start "" build\ut99.exe --run -- -INI=UTRecomp.ini -USERINI=UTRecompUser.ini')
 Say "  $lnk"
 
 Write-Host ""

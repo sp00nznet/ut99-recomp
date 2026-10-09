@@ -407,3 +407,40 @@ with 8x MSAA on the RTX 5070, on a machine shared with other work:
 uncapped, 85 to 218 fps and never steady; `--fps-cap 120`, 117.4 to 120.2.
 UT's physics and input go wrong at very high frame rates, so the launcher
 passes `--fps-cap 200` and leaves vsync to the driver.
+
+## 20. The settings in the game's menus, and HUD fonts for 1080p
+
+The Video page can't take more rows without changing a file of the game's:
+`UMenuVideoScrollClient` names `UMenuVideoClientWindow` outright, where pages
+like Audio are found by name. UT's own way in is the **Mod menu**, which
+lists every class an `.int` file declares with
+`MetaClass=UMenu.UMenuModMenuItem`. `mod/RecompMenu` is ours, in
+UnrealScript: *Mod > Recomp Graphics* opens a window with anti-aliasing,
+texture filtering, the frame cap, vsync, HUD fonts and menu size.
+
+![Recomp Graphics](screenshots/recomp-graphics-window.png)
+
+The first four are the host's. The window saves them under
+`[RecompMenu.RecompGraphicsClient]` in the game's ini, and the host reads
+that section from whichever ini `-INI=` names before the game starts
+(`glfx_config`); a command-line flag still wins. The launcher passes no
+flags now. Its ini arguments became `-INI=` and `-USERINI=`: without the
+dash, a start with no map took `INI=UTRecomp.ini` for the map URL, looked it
+up as a host name and fell back to the intro.
+
+HUD fonts: Botpack's `FontInfo` picks bigger LadderFonts up to 1024 pixels
+wide and stops, so at 1080p the HUD's text is what it is at 1024x768.
+`ChallengeHUD.FontInfoClass` is a config string, and `RecompFontInfo`
+scales each size by width/1280 from there, up to the largest LadderFont (30
+point; very high resolutions still stop at 30). Menu size is UWindow's own
+`GUIScale` (2: the menus at double size with Tahoma 20 and 30). The
+original fonts and the scaled ones at 1920x1080:
+
+![HUD fonts at 1080p](screenshots/hud-fonts-1080p.png)
+
+`RecompMenu.u` is built on the player's machine by `tools/build_mod.py`
+(Setup step 8): our source compiled by the game's own `UCC.exe make`, run
+natively as a tool, since `make` needs `Editor.dll`, which is not lifted.
+The stock packages are not touched (UMenu.u stays byte-identical to the
+Steam copy). `tools/uscript.py` prints the UnrealScript a package carries,
+which is how the window's calls into UWindow were found.

@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering and a 200 fps cap; our own Direct3D 11 renderer is next.
+## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering, a 200 fps cap and HUD fonts that scale with the resolution, all set from the game's own Mod menu (*Recomp Graphics*); our own Direct3D 11 renderer is next.
 
 | Stage | State |
 |---|---|
@@ -50,6 +50,10 @@ UT's OpenGL renderer, recompiled, at 1600x900 with a Hor+ field of view (the lau
 
 ![OpenGL, 1600x900](docs/screenshots/opengl-dm-1600x900.png)
 
+The settings, in the game's own Mod menu (*Mod > Recomp Graphics*):
+
+![Recomp Graphics](docs/screenshots/recomp-graphics-window.png)
+
 Capture the Flag, played by hand in a live window, software renderer (Facing Worlds, Coret):
 
 | | |
@@ -79,7 +83,8 @@ your machine from your copy and is never distributed.
    sentence and keeps the details in `setup.log`.
 3. Double-click **`Unreal Tournament (recomp).cmd`**: the game in a 16:9
    window in UT's OpenGL renderer, on its own `game\System\UTRecomp.ini`
-   (`py -3 tools\hd_ini.py 1920x1080` remakes it at another size).
+   (`py -3 tools\hd_ini.py --reset 1920x1080` remakes it at another size).
+   *Mod > Recomp Graphics* in the game's menu bar has the rendering settings.
 
 ### Step by step
 

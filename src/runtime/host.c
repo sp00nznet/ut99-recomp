@@ -555,6 +555,7 @@ int main(int argc, char** argv) {
     _snprintf(g_guest_exe, sizeof g_guest_exe - 1, "%s\\%s", g_system_dir, launcher);
     g_guest_argv[0] = g_guest_exe;
     g_guest_argc += 1;
+    glfx_config(g_system_dir, g_guest_argc - 1, g_guest_argv);
     _snprintf(g_guest_cmdline, sizeof g_guest_cmdline - 1, "\"%s\"%s", g_guest_exe, tail);
     MultiByteToWideChar(CP_ACP, 0, g_guest_cmdline, -1, g_guest_cmdline_w, 1024);
     /* The engine runs from game\System, as UnrealTournament.exe does. Native

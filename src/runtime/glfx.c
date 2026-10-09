@@ -23,7 +23,26 @@
 
 #include "glfx.h"
 
-int g_msaa, g_aniso, g_vsync = -1, g_fps_cap, g_show_fps;
+int g_msaa = GLFX_UNSET, g_aniso = GLFX_UNSET, g_vsync = GLFX_UNSET, g_fps_cap = GLFX_UNSET, g_show_fps;
+
+/* What a flag left unset comes from the game's ini (INI=, else
+ * UnrealTournament.ini): [RecompMenu.RecompGraphicsClient], where the Mod
+ * menu's "Recomp Graphics" window saves it (mod/RecompMenu). Neither: off. */
+void glfx_config(const char* system_dir, int argc, char** argv) {
+    static const char* sect = "RecompMenu.RecompGraphicsClient";
+    char ini[MAX_PATH], name[MAX_PATH] = "UnrealTournament.ini";
+    for (int i = 1; i <= argc; i++) {
+        const char* a = argv[i] && argv[i][0] == '-' ? argv[i] + 1 : argv[i];   /* -INI= or INI= */
+        if (a && !_strnicmp(a, "INI=", 4)) strncpy_s(name, sizeof name, a + 4, _TRUNCATE);
+    }
+    _snprintf(ini, sizeof ini - 1, "%s\\%s", system_dir, name);
+    if (g_msaa == GLFX_UNSET) g_msaa = GetPrivateProfileIntA(sect, "MSAA", 0, ini);
+    if (g_aniso == GLFX_UNSET) g_aniso = GetPrivateProfileIntA(sect, "Aniso", 0, ini);
+    if (g_fps_cap == GLFX_UNSET) g_fps_cap = GetPrivateProfileIntA(sect, "FPSCap", 0, ini);
+    if (g_vsync == GLFX_UNSET) g_vsync = GetPrivateProfileIntA(sect, "VSync", -1, ini);
+    if (g_msaa || g_aniso || g_fps_cap || g_vsync >= 0)
+        fprintf(stderr, "[glfx] msaa %d, aniso %d, fps cap %d, vsync %d (%s)\n", g_msaa, g_aniso, g_fps_cap, g_vsync, name);
+}
 
 typedef BOOL(WINAPI* set_pf_t)(HDC, int, const PIXELFORMATDESCRIPTOR*);
 typedef void(WINAPI* texparami_t)(unsigned, unsigned, int);

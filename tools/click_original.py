@@ -10,14 +10,18 @@ program it starts, and that program's windows, on its virtual monitor):
     offstage run --size 1280x720 --record ref.mp4 -- work\\ref\\System\\UnrealTournament.exe "DM-Deck16][?game=Botpack.DeathMatchPlus?numbots=4"
 
 Times are seconds from when the window first appears; the game is closed
---stay seconds (default 30) after the last click.
+--stay seconds (default 30) after the last click. A click is in the middle of
+the window, or at client pixel X,Y as T@X,Y (a mouse move there first, which
+is how UWindow's menus follow the cursor). It drives the recompiled game's
+menus the same way (the window has the same title).
 """
 import ctypes
 import sys
 import time
 
 user32 = ctypes.windll.user32
-WM_LBUTTONDOWN, WM_LBUTTONUP, WM_CLOSE, MK_LBUTTON = 0x201, 0x202, 0x10, 1
+WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_CLOSE, MK_LBUTTON = 0x200, 0x201, 0x202, 0x10, 1
+KEYS = {'esc': 0x1B, 'enter': 0x0D, 'left': 0x25, 'up': 0x26, 'right': 0x27, 'down': 0x28}
 
 
 def main():
@@ -25,7 +29,7 @@ def main():
     stay = 30.0
     if argv[:1] == ['--stay']:
         stay, argv = float(argv[1]), argv[2:]
-    clicks = [float(a) for a in argv]
+    clicks = [(float(a.split('@')[0]), a.split('@')[1] if '@' in a else None) for a in argv]
     hwnd = None
     for _ in range(600):
         hwnd = user32.FindWindowW(None, 'Unreal Tournament')
@@ -35,16 +39,28 @@ def main():
     if not hwnd:
         sys.exit('no Unreal Tournament window')
     t0 = time.time()
-    for at in clicks:
+    for at, xy in clicks:
         time.sleep(max(0, t0 + at - time.time()))
         r = (ctypes.c_long * 4)()
         user32.GetClientRect(hwnd, r)
-        pos = (r[3] // 2) << 16 | (r[2] // 2)
+        if xy in KEYS:   # T@esc, T@right, ...: a key, as UWindow's menus take them
+            vk = KEYS[xy]
+            sc = user32.MapVirtualKeyW(vk, 0)
+            user32.PostMessageW(hwnd, 0x100, vk, 1 | sc << 16)
+            time.sleep(0.05)
+            user32.PostMessageW(hwnd, 0x101, vk, 1 | sc << 16 | 0xC0000000)
+            print('[key] %.1f s %s' % (time.time() - t0, xy), flush=True)
+            continue
+        x, y = map(int, xy.split(',')) if xy else (r[2] // 2, r[3] // 2)
+        pos = y << 16 | x
+        if xy:
+            user32.PostMessageW(hwnd, WM_MOUSEMOVE, 0, pos)
+            time.sleep(0.2)
         user32.PostMessageW(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, pos)
         time.sleep(0.05)
         user32.PostMessageW(hwnd, WM_LBUTTONUP, 0, pos)
-        print('[click] %.1f s' % (time.time() - t0), flush=True)
-    time.sleep(max(0, t0 + (clicks[-1] if clicks else 0) + stay - time.time()))
+        print('[click] %.1f s %s' % (time.time() - t0, xy or 'centre'), flush=True)
+    time.sleep(max(0, t0 + (clicks[-1][0] if clicks else 0) + stay - time.time()))
     user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
 
 

@@ -6,6 +6,22 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- *Mod > Recomp Graphics*: our UnrealScript package (`mod/RecompMenu`, built
+  by the game's own `UCC.exe make` in `tools/build_mod.py`) adds a window to
+  UT's Mod menu for anti-aliasing, texture filtering, the frame cap, vsync,
+  HUD fonts and menu size. The host reads the first four from the game's ini
+  (`[RecompMenu.RecompGraphicsClient]`); flags still override.
+- Scaled HUD fonts (`RecompMenu.RecompFontInfo`): sizes keep growing past
+  1024 pixels wide, up to UT's largest (30 point); on by default in the
+  launcher's ini.
+- `tools/uscript.py`: the UnrealScript text a package carries.
+  `tools/click_original.py` takes keys and positions (`T@esc`, `T@X,Y`).
+
+### Fixed
+- The launcher passes `-INI=`/`-USERINI=`: without the dash, a start with no
+  map took the ini's name for the map URL and resolved it as a host name.
+- `tools/hd_ini.py` added nothing for a section the ini lacked; a rerun now
+  keeps an existing pair and adds only what is missing (`--reset` starts over).
 - Frame pacing for the OpenGL renderer: `--vsync 0|1`, `--fps-cap N` and
   `--show-fps`, by wrapping `SwapBuffers`; the launcher caps at 200 fps
   (docs/bringup.md 19).
