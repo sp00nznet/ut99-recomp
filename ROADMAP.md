@@ -37,7 +37,8 @@ in 3D. First step done: the launcher runs UT's own OpenGL renderer,
 recompiled, in a 16:9 window with a Hor+ field of view (`tools/hd_ini.py`,
 docs/bringup.md 17), with 8x MSAA and 16x anisotropic filtering added by
 the host (`--msaa`, `--aniso`; 18), a frame cap (`--fps-cap`; 19), all in
-the game's Mod menu, with HUD fonts scaled for 1080p and up (20).
+the game's Mod menu, with HUD fonts scaled for 1080p and up (20), and
+borderless fullscreen on Alt+Enter (21).
 
 - **Our own presenter** (Direct3D 11): a resizable window, borderless
   fullscreen, settings remembered, the game's resolution decoupled from the

@@ -78,7 +78,7 @@ function Created()
 	Choose(MenuCombo, string(int(Root.GUIScale)));
 
 	Note = UWindowLabelControl(CreateControl(class'UWindowLabelControl', 10, 165, WinWidth - 20, 1));
-	Note.SetText("Rendering settings apply at the next start.");
+	Note.SetText("Rendering settings apply at the next start. Alt+Enter: borderless fullscreen.");
 	Note.SetFont(F_Normal);
 
 	bReady = True;

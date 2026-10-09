@@ -12,6 +12,10 @@
  *   --fps-cap N at most N frames a second: UT's physics and input go wrong
  *               at very high frame rates, and a GPU now draws it at hundreds.
  *   --show-fps  the frame rate on stderr every 5 s.
+ *   Alt+Enter   borderless fullscreen and back (the game's own Alt+Enter is a
+ *               display-mode change, which fails on Windows 11): the window
+ *               becomes a popup over its monitor and the viewport follows its
+ *               size. Remembered for the next start (System\RecompHost.ini).
  *
  * Off unless asked for: the stock game keeps the original's behaviour.
  */
@@ -28,18 +32,37 @@ int g_msaa = GLFX_UNSET, g_aniso = GLFX_UNSET, g_vsync = GLFX_UNSET, g_fps_cap =
 /* What a flag left unset comes from the game's ini (INI=, else
  * UnrealTournament.ini): [RecompMenu.RecompGraphicsClient], where the Mod
  * menu's "Recomp Graphics" window saves it (mod/RecompMenu). Neither: off. */
+static const char* sect = "RecompMenu.RecompGraphicsClient";
+static char ini[MAX_PATH];   /* the game's ini, full path */
+/* The host's own window state, in a file the game never writes: the game
+ * rewrites its ini from its cache on the way out, and keys added to it while
+ * it runs can be lost. */
+static char host_ini[MAX_PATH];   /* System\RecompHost.ini, [Window] */
+static int g_borderless;          /* Alt+Enter's state: Borderless= */
+
 void glfx_config(const char* system_dir, int argc, char** argv) {
-    static const char* sect = "RecompMenu.RecompGraphicsClient";
-    char ini[MAX_PATH], name[MAX_PATH] = "UnrealTournament.ini";
+    char name[MAX_PATH] = "UnrealTournament.ini";
     for (int i = 1; i <= argc; i++) {
         const char* a = argv[i] && argv[i][0] == '-' ? argv[i] + 1 : argv[i];   /* -INI= or INI= */
         if (a && !_strnicmp(a, "INI=", 4)) strncpy_s(name, sizeof name, a + 4, _TRUNCATE);
     }
     _snprintf(ini, sizeof ini - 1, "%s\\%s", system_dir, name);
+    _snprintf(host_ini, sizeof host_ini - 1, "%s\\RecompHost.ini", system_dir);
     if (g_msaa == GLFX_UNSET) g_msaa = GetPrivateProfileIntA(sect, "MSAA", 0, ini);
     if (g_aniso == GLFX_UNSET) g_aniso = GetPrivateProfileIntA(sect, "Aniso", 0, ini);
     if (g_fps_cap == GLFX_UNSET) g_fps_cap = GetPrivateProfileIntA(sect, "FPSCap", 0, ini);
     if (g_vsync == GLFX_UNSET) g_vsync = GetPrivateProfileIntA(sect, "VSync", -1, ini);
+    g_borderless = GetPrivateProfileIntA("Window", "Borderless", 0, host_ini);
+    /* A session that quit borderless left the monitor's size as the game's
+     * window size; put back the one it had before, before the game reads it. */
+    int wx = GetPrivateProfileIntA("Window", "WindowedX", 0, host_ini), wy = GetPrivateProfileIntA("Window", "WindowedY", 0, host_ini);
+    if (g_borderless && wx > 0 && wy > 0) {
+        char v[16];
+        _snprintf(v, sizeof v - 1, "%d", wx);
+        WritePrivateProfileStringA("WinDrv.WindowsClient", "WindowedViewportX", v, ini);
+        _snprintf(v, sizeof v - 1, "%d", wy);
+        WritePrivateProfileStringA("WinDrv.WindowsClient", "WindowedViewportY", v, ini);
+    }
     if (g_msaa || g_aniso || g_fps_cap || g_vsync >= 0)
         fprintf(stderr, "[glfx] msaa %d, aniso %d, fps cap %d, vsync %d (%s)\n", g_msaa, g_aniso, g_fps_cap, g_vsync, name);
 }
@@ -129,6 +152,55 @@ static void WINAPI fx_glTexParameterf(unsigned target, unsigned pname, float v) 
     real_texparamf(target, pname, v);
 }
 
+/* ---- borderless fullscreen ------------------------------------------------
+ * The game window, subclassed on the frame it is first drawn to: Alt+Enter
+ * is ours, everything else goes on to WinDrv's window procedure. */
+static HWND g_win;
+static WNDPROC g_win_proc;
+static LONG g_win_style;
+static RECT g_win_rect;
+
+static void set_borderless(HWND w, int on) {
+    if (on) {
+        MONITORINFO mi = { sizeof mi };
+        RECT c;
+        char v[16];
+        GetClientRect(w, &c);   /* the windowed size, for the next start (glfx_config) */
+        _snprintf(v, sizeof v - 1, "%ld", c.right);
+        WritePrivateProfileStringA("Window", "WindowedX", v, host_ini);
+        _snprintf(v, sizeof v - 1, "%ld", c.bottom);
+        WritePrivateProfileStringA("Window", "WindowedY", v, host_ini);
+        g_win_style = GetWindowLongW(w, GWL_STYLE);
+        GetWindowRect(w, &g_win_rect);
+        GetMonitorInfoW(MonitorFromWindow(w, MONITOR_DEFAULTTONEAREST), &mi);
+        SetWindowLongW(w, GWL_STYLE, (g_win_style & ~WS_OVERLAPPEDWINDOW) | WS_POPUP);
+        SetWindowPos(w, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left,
+                     mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_FRAMECHANGED | SWP_NOOWNERZORDER);
+    } else {
+        SetWindowLongW(w, GWL_STYLE, g_win_style);
+        SetWindowPos(w, NULL, g_win_rect.left, g_win_rect.top, g_win_rect.right - g_win_rect.left,
+                     g_win_rect.bottom - g_win_rect.top, SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    }
+    g_borderless = on;
+    WritePrivateProfileStringA("Window", "Borderless", on ? "1" : "0", host_ini);
+    fprintf(stderr, "[glfx] %s\n", on ? "borderless fullscreen" : "windowed");
+}
+
+static LRESULT CALLBACK fx_wndproc(HWND w, UINT m, WPARAM wp, LPARAM lp) {
+    if ((m == WM_SYSKEYDOWN || m == WM_SYSKEYUP || m == WM_SYSCHAR) && wp == VK_RETURN && (lp & 1 << 29)) {
+        if (m == WM_SYSKEYDOWN && !(lp & 1 << 30)) set_borderless(w, !g_borderless);   /* not on repeats */
+        return 0;
+    }
+    return CallWindowProcW(g_win_proc, w, m, wp, lp);
+}
+
+static void hook_window(HWND w) {
+    if (!w || w == g_win) return;
+    g_win = w;
+    g_win_proc = (WNDPROC)SetWindowLongPtrW(w, GWLP_WNDPROC, (LONG_PTR)fx_wndproc);
+    if (g_borderless) set_borderless(w, 1);   /* as the last session left it */
+}
+
 /* ---- frame pacing ---------------------------------------------------------
  * After the swap: wait out the rest of the frame's 1/cap s, sleeping in 1 ms
  * steps while more than 2 ms remain and spinning the last of it, so the cap is
@@ -146,6 +218,7 @@ static BOOL WINAPI fx_SwapBuffers(HDC dc) {
         fprintf(stderr, "[glfx] frames: vsync %s, cap %d fps (0: none)\n",
                 g_vsync < 0 ? "the driver's" : g_vsync ? "on" : "off", g_fps_cap);
     }
+    hook_window(WindowFromDC(dc));
     BOOL r = real_swap(dc);
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
@@ -178,7 +251,7 @@ uint32_t glfx_proc(HMODULE h, const char* name, uint32_t real) {
         real_set_pf = (set_pf_t)(uintptr_t)real;
         return (uint32_t)(uintptr_t)fx_SetPixelFormat;
     }
-    if ((g_vsync >= 0 || g_fps_cap || g_show_fps) && !strcmp(name, "SwapBuffers")) {
+    if (!strcmp(name, "SwapBuffers")) {   /* always: Alt+Enter, and pacing when asked */
         real_swap = (swap_t)(uintptr_t)real;
         return (uint32_t)(uintptr_t)fx_SwapBuffers;
     }

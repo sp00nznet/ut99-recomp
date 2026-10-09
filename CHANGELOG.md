@@ -6,6 +6,8 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- Borderless fullscreen on Alt+Enter (in place of UT's display-mode change),
+  remembered across starts in `System\RecompHost.ini` (docs/bringup.md 21).
 - *Mod > Recomp Graphics*: our UnrealScript package (`mod/RecompMenu`, built
   by the game's own `UCC.exe make` in `tools/build_mod.py`) adds a window to
   UT's Mod menu for anti-aliasing, texture filtering, the frame cap, vsync,

@@ -444,3 +444,22 @@ natively as a tool, since `make` needs `Editor.dll`, which is not lifted.
 The stock packages are not touched (UMenu.u stays byte-identical to the
 Steam copy). `tools/uscript.py` prints the UnrealScript a package carries,
 which is how the window's calls into UWindow were found.
+
+## 21. Borderless fullscreen on Alt+Enter
+
+UT's own Alt+Enter changes the display mode, which is what fails on Windows
+11; F11 is its Brightness key. The host takes Alt+Enter: on the first frame
+drawn (the `SwapBuffers` wrapper), it subclasses the game's window, and
+Alt+Enter turns it into a popup over its monitor and back. WinDrv's window
+procedure sees the resize as any other, and the OpenGL viewport follows: the
+HUD and scoreboard lay out at the monitor's size.
+
+![Borderless, then windowed again](screenshots/borderless-toggle.png)
+
+The state is kept in `System\RecompHost.ini`, a file the game never writes:
+UT rewrites its ini from its own cache on the way out, and keys the host
+added to it while it ran did not survive. Quitting borderless leaves the
+monitor's size as the game's window size, so the host also keeps the
+windowed size it had, and puts it back into the game's ini at the next start,
+before the game reads it.
+

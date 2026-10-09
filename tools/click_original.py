@@ -43,6 +43,13 @@ def main():
         time.sleep(max(0, t0 + at - time.time()))
         r = (ctypes.c_long * 4)()
         user32.GetClientRect(hwnd, r)
+        if xy == 'altenter':   # T@altenter: Alt+Enter, a system key
+            sc = user32.MapVirtualKeyW(0x0D, 0)
+            user32.PostMessageW(hwnd, 0x104, 0x0D, 1 | sc << 16 | 1 << 29)
+            time.sleep(0.05)
+            user32.PostMessageW(hwnd, 0x105, 0x0D, 1 | sc << 16 | 1 << 29 | 0xC0000000)
+            print('[key] %.1f s alt+enter' % (time.time() - t0), flush=True)
+            continue
         if xy in KEYS:   # T@esc, T@right, ...: a key, as UWindow's menus take them
             vk = KEYS[xy]
             sc = user32.MapVirtualKeyW(vk, 0)
