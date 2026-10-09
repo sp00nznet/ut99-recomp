@@ -1,0 +1,3 @@
+[Public]
+Object=(Name=RecompMenu.RecompMenuItem,Class=Class,MetaClass=UMenu.UMenuModMenuItem,Description="&Recomp Graphics,Anti-aliasing, texture filtering, frame rate, HUD fonts and menu size")
+Object=(Name=RecompMenu.RecompFontInfo,Class=Class,MetaClass=Botpack.FontInfo,Description="Scaled HUD fonts")

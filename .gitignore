@@ -32,6 +32,7 @@ game/
 *.uax
 *.umx
 *.int
+!mod/*.int
 *.iso
 *.zip
 
