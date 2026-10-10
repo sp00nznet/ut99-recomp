@@ -16,7 +16,7 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering, a 200 fps cap and HUD fonts that scale with the resolution, all set from the game's own Mod menu (*Recomp Graphics*), and borderless fullscreen on Alt+Enter; our own Direct3D 11 renderer is next.
+## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering, a 200 fps cap and HUD fonts that scale with the resolution, all set from the game's own Mod menu (*Recomp Graphics*), and borderless fullscreen on Alt+Enter. Played by hand at 16:9 with no slowdown. A renderer of our own (Direct3D 11) would need Epic's class layouts, so the HD work wraps the OpenGL renderer's calls instead.
 
 | Stage | State |
 |---|---|
@@ -28,6 +28,7 @@ target first, and a different route to the same game.
 | The game (`UnrealTournament.exe`, SoftDrv) | **plays**: the intro flyby as the original renders it, the main menu (UWindow), and a Deathmatch on DM-Deck16][ with four bots fighting, taunting and scoring, about 50 fps, driven by `--key` ([bringup.md](docs/bringup.md) 7-16); the HUD matches the original's |
 | Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
 | Conformance harness (`tools/conformance.py`, `netlab qa ut99-recomp`) | **11/11** boot milestones over three headless runs (intro, Deathmatch, dedicated server) and lift health, against `conformance.json` |
+| HD makeover (OpenGlDrv + `src/runtime/glfx.c`, `mod/RecompMenu`) | **done for the launcher**: 16:9 window with Hor+ FOV, MSAA, anisotropic filtering, frame cap and vsync, scaled HUD fonts, 2x menus, borderless on Alt+Enter, settings in *Mod > Recomp Graphics* ([bringup.md](docs/bringup.md) 17-21) |
 
 ## Screenshots
 
