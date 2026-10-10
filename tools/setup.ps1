@@ -52,7 +52,7 @@ function Run($what, [string[]]$cmd) {
 
 Clear-Host
 Say "Unreal Tournament (1999) - static recompilation setup" 'White'
-Say "You need your installed copy of Unreal Tournament (Steam) and about 3 GB free."
+Say "You need your installed copy of Unreal Tournament (Steam or GOG) and about 3 GB free."
 Say "The function catalogs, the lift and the build take 40 to 80 minutes, once."
 
 # ---------------------------------------------------------------- tools
@@ -161,6 +161,17 @@ function Find-Steam {
   }
   return ""
 }
+# GOG's GOTY (2.0.0.5) ships the same files as Steam's, with the launcher
+# already unwrapped. Its installer leaves an uninstall entry, as any does.
+function Find-Installed {
+  $keys = 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*',
+          'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
+          'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*'
+  foreach ($e in (Get-ItemProperty $keys -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like 'Unreal Tournament*' })) {
+    if (Is-Install $e.InstallLocation) { return $e.InstallLocation }
+  }
+  return ""
+}
 
 if ((Is-Install 'game') -and -not $Force) {
   Say "  game\ is already there (skipping)."
@@ -169,6 +180,10 @@ if ((Is-Install 'game') -and -not $Force) {
   if (-not (Is-Install $Game)) {
     $Game = Find-Steam
     if ($Game) { Say "  Found it in your Steam library: $Game" }
+  }
+  if (-not (Is-Install $Game)) {
+    $Game = Find-Installed
+    if ($Game) { Say "  Found it installed: $Game" }
   }
   while (-not (Is-Install $Game)) {
     $Game = (Read-Host "  Paste the folder Unreal Tournament is installed in (the one with System\UnrealTournament.exe)").Trim('"', ' ')

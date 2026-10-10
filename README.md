@@ -67,8 +67,10 @@ UT's own Recovery Mode dialog, drawn by the recompiled Window.dll:
 
 ## Getting Started
 
-You need **your own copy of Unreal Tournament**: the Steam build (the folder
-holding `System\UnrealTournament.exe`). Nothing from the game is in this
+You need **your own copy of Unreal Tournament**: the Steam build or GOG's GOTY
+(the folder holding `System\UnrealTournament.exe`). The two ship the same
+code, file for file, except that GOG's launcher is not wrapped in SteamStub;
+one build runs either (conformance 11/11 on both). Nothing from the game is in this
 repository and nothing is downloaded for you. The lifted C is generated on
 your machine from your copy and is never distributed.
 
@@ -78,7 +80,7 @@ your machine from your copy and is never distributed.
 2. Double-click **`Setup.cmd`**. It checks for Python, the Python packages,
    pcrecomp, Visual Studio, CMake and Ninja, and asks before installing
    anything that is missing. It finds Unreal Tournament in your Steam library
-   (or asks for the folder), copies it into `game\` and sets it to start
+   or a GOG install (or asks for the folder), copies it into `game\` and sets it to start
    windowed, then unwraps, catalogs, lifts and builds. 40 to 80 minutes the
    first time; a rerun skips finished steps. If it stops, it says why in one
    sentence and keeps the details in `setup.log`.
