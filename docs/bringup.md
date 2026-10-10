@@ -138,8 +138,8 @@ The next crash was an execute fault at a heap address:
   region 0x0CDE0000+0xB0000 protect 0x4 type 0x20000
 ```
 
-Those bytes are Galaxy's own mixer code (four templates in its `.text` start
-with them): Galaxy copies the templates into `GlobalAlloc` memory, patches
+The bytes there are Galaxy's own mixer code (they match the start of four
+templates in its `.text`): Galaxy copies the templates into `GlobalAlloc` memory, patches
 them, and calls the copies. Heap memory was executable in 1999; under DEP it
 is not. A static lift cannot contain code patched at run time, but the copy
 is plain x86 working on guest memory in this address space, so the host
@@ -246,14 +246,12 @@ the function that breaks Render.dll: sub_10B01203
 ## 13. `xor; jge` was always taken
 
 The clipper decides whether an edge crosses a plane by the signs of two
-distances, stored as floats and read as integers:
+distances, stored as floats and read as integers: it XORs the two and jumps
+past the clip when the result is not negative (same sign: no crossing).
 
-
-lifted as
-
-
-`or` and `xor` keep their result in both flag slots, and `CMP_GE(r, r)` is
-always true: no edge ever crossed a plane. lift32 had a note saying ordering
+lift32 kept the result of `or` and `xor` in both of its flag slots, and
+compared the two for the signed jump, so the "greater or equal" was always
+true: no edge ever crossed a plane. lift32 had a note saying ordering
 jumps after `or`/`xor` were approximate; they now use `test`'s table, which is
 exact for a result held in both slots (pcrecomp `fix/lift32-or-xor-jcc`, four
 difftest cases, 206/206). With the whole game relifted:

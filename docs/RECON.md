@@ -63,8 +63,9 @@ uses Windows' own `msvcrt.dll`, which every module imports by the same name.
 `UnrealTournament.exe` is wrapped: its `.text` is encrypted, the entry point
 moved into a `.bind` section, and a disassembler finds nothing in it (the
 first catalog decoded 0 call targets and covered 18% by accident). It is an
-older SteamStub than the one on KotOR, with no `steamdrm.dll` inside:
-
+older SteamStub than the one on KotOR, with no `steamdrm.dll` inside. Its
+entry saves the registers, makes a stack frame and copies a 0xDD-dword
+header from `0x10964380` onto the stack.
 
 The header's first dword seeds a running XOR over the rest (each dword XORed
 with the previous *encoded* one). Decoded, it holds the OEP (`0x1092238C`),
