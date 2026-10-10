@@ -16,11 +16,34 @@ renderers and fixes for it. This project starts from the binaries the Steam
 build ships and runs Epic's own machine code, recompiled; it is a pcrecomp
 target first, and a different route to the same game.
 
-## Status: **P1, bring-up: playable.** Every module lifts with 0 errors. The game boots through the intro to the main menu and plays a Deathmatch against bots in the software renderer, about 50 fps; the dedicated server runs and answers server-browser queries. Played by hand in a live window with mouse look: Capture the Flag on Facing Worlds, Coret and Command, a match played to its end and the next map loaded. The launcher runs UT's own OpenGL renderer, recompiled, in a widescreen window with a Hor+ field of view, 8x anti-aliasing, 16x anisotropic filtering, a 200 fps cap and HUD fonts that scale with the resolution, all set from the game's own Mod menu (*Recomp Graphics*), and borderless fullscreen on Alt+Enter. Played by hand at 16:9 with no slowdown. A renderer of our own (Direct3D 11) would need Epic's class layouts, so the HD work wraps the OpenGL renderer's calls instead.
+## What the makeover adds
+
+Everything here is built on the game's own code, recompiled; the original's
+look is one setting away (*Mod > Recomp Graphics*, or the stock ini).
+
+- **Widescreen, done properly.** A 16:9 window with a Hor+ field of view: the
+  original's 4:3 picture, with more of the level at the sides instead of the
+  top and bottom cut off. UT's own OpenGL renderer draws it, recompiled.
+- **Anti-aliasing**: up to 8x multisampling, which UT's renderer never asked
+  the driver for.
+- **Sharper textures at a distance**: trilinear and up to 16x anisotropic
+  filtering in place of the renderer's bilinear with the nearest mip.
+- **Frame pacing**: a frame cap (200 by default; UT's physics go wrong far
+  above that) and vsync.
+- **HUD and menus for 1080p and up**: UT's HUD fonts stop growing at 1024
+  pixels wide; ours scale with the resolution. The menus can run at twice
+  the size.
+- **Borderless fullscreen on Alt+Enter**, where UT's own mode switch fails on
+  Windows 11. The window remembers its size.
+- **Settings in the game's own menus**: *Mod > Recomp Graphics*, an
+  UnrealScript window of ours, saved in the game's ini.
+- **Steam or GOG**: either copy of the game (the same code, file for file).
+
+## Status: **P1, playable.** Every module lifts with 0 errors. Played by hand in a 16:9 window: Deathmatch, Capture the Flag, Assault, a match to its end and the next map. The dedicated server runs and answers server-browser queries.
 
 | Stage | State |
 |---|---|
-| P0: pick the build | Steam v436 (app 13240): `UnrealTournament.exe` wrapped in SteamStub 2.0, unwrapped statically; 12 DLLs, four rebased to fit ([RECON.md](docs/RECON.md)) |
+| P0: pick the build | Steam v436 (app 13240): `UnrealTournament.exe` wrapped in SteamStub 2.0, unwrapped statically; 12 DLLs, four rebased to fit ([RECON.md](docs/RECON.md)). GOG's GOTY 2.0.0.5 is the same code, its launcher already unwrapped |
 | Function catalog (`tools/catalog.py`) | ~37,000 functions across 14 modules, 65-95% of each `.text`; no RTTI in this build, exports seed it |
 | Lift (`run_lift.py`) | 38,674 functions, every module, **0 lift errors**; guest C++ exceptions caught and resumed (pcrecomp eh32); instructions lifted as nothing are counted, and the only one that still runs is Galaxy's SSE probe, which needs no result |
 | Host (`build/ut99.exe`, 32-bit, pcrecomp `native32`) | maps every module at its base, binds guest-to-guest imports to lifted exports, runs each DLL's `DllMain` when the game loads it |
@@ -29,6 +52,32 @@ target first, and a different route to the same game.
 | Headless mode | `--headless --record out.mp4 --frames N`: no window on any screen, the game's frames to ffmpeg at 30 fps; the game itself runs at about 55 fps in the software renderer |
 | Conformance harness (`tools/conformance.py`, `netlab qa ut99-recomp`) | **11/11** boot milestones over three headless runs (intro, Deathmatch, dedicated server) and lift health, against `conformance.json` |
 | HD makeover (OpenGlDrv + `src/runtime/glfx.c`, `mod/RecompMenu`) | **done for the launcher**: 16:9 window with Hor+ FOV, MSAA, anisotropic filtering, frame cap and vsync, scaled HUD fonts, 2x menus, borderless on Alt+Enter, settings in *Mod > Recomp Graphics* ([bringup.md](docs/bringup.md) 17-21) |
+
+## Original vs recompiled
+
+The same spawn on DM-Tutorial, the same camera. On the left, the shipping
+`UnrealTournament.exe` on its own OpenGL renderer at 1440x1080 (4:3, the
+original's 90 degrees). On the right, the recompiled game with the launcher's
+settings at 1920x1080. The middle of the right picture is the left one; the
+sides are what Hor+ adds. The HUD text is scaled to the resolution.
+
+![Original 4:3 vs recompiled 16:9](docs/screenshots/compare-widescreen.jpg)
+
+**Texture filtering**: the floor from the same two frames, 2x, brightened the
+same on both sides. The original's bilinear blurs the far floor into a smear;
+16x anisotropic filtering keeps its cracks and the joints between the slabs:
+
+![Texture filtering, original vs recompiled](docs/screenshots/compare-filtering.jpg)
+
+**Anti-aliasing**: the beam and its carving over the doorway, 3x, the
+original's stair-stepped edges on the left, 8x MSAA on the right:
+
+![Edges, original vs recompiled](docs/screenshots/compare-edges.jpg)
+
+HUD fonts at 1920x1080: UT's own choice on the left, which stops at the
+1024-pixel size, and ours, scaled, on the right:
+
+![HUD fonts at 1080p](docs/screenshots/hud-fonts-1080p.png)
 
 ## Screenshots
 
@@ -99,7 +148,7 @@ and the pcrecomp toolkit cloned **beside** this repository as `tools`:
 
 ```
 some-folder\
-  tools\        <- git clone --branch ut99-integration https://github.com/sp00nznet/pcrecomp tools
+  tools\        <- git clone https://github.com/sp00nznet/pcrecomp tools
   ut99\         <- this repository
 ```
 
@@ -161,8 +210,8 @@ build\ut99.exe --run --headless --record dm.mp4 --frames 1500 --key fire@8 --key
 ```
 
 The shipping ini starts in fullscreen through DirectDraw at 640x480x16,
-which fails on Windows 11 (the original faults on it). Until the presenter
-lands, run windowed: under `[WinDrv.WindowsClient]` in
+which fails on Windows 11 (the original faults on it). Setup.cmd sets it to
+run windowed: under `[WinDrv.WindowsClient]` in
 `game\System\UnrealTournament.ini`, `StartupFullscreen=False` and
 `UseDirectDraw=False`. A run that crashed leaves `System\Running.ini`, and
 the next start opens Recovery Mode; *Run Unreal Tournament* carries on.
@@ -176,17 +225,10 @@ trace options (`build\ut99.exe --help`).
 
 Steps 5 and 6 above. `PCRECOMP` (environment, for the Python tools) and
 `-DPCRECOMP=` (CMake) point at a toolkit checkout other than `..\tools`; the
-lifter and the runtime must come from the same tree. Until they merge, the
-toolkit needs eight pcrecomp branches, merged in one tree; pcrecomp's
-`ut99-integration` branch is that tree (`git clone --branch ut99-integration
-https://github.com/sp00nznet/pcrecomp tools`, which is what Setup.cmd does):
-`fix/native32-bridge-callee-clobbers` (#59), `feat/lift32-mmx-byte-ops`
-(translucency in the software renderer, #61),
-`feat/steamstub-2.0` (the launcher's DRM, pcrecomp#52), `feat/eh32` (guest
-C++ exceptions, #53), `feat/disasm32-nop-padded-entries` (a missed static
-constructor, #54), `feat/native32-x87-crt` (`_ftol` and friends, #56),
-`feat/native32-native-modules` (`--native`, #57) and
-`fix/lift32-or-xor-jcc` (the renderer's clipper, #58).
+lifter and the runtime must come from the same tree. Everything this game
+needed from the toolkit is merged into pcrecomp's `main` (#52-#61: SteamStub
+2.0, guest C++ exceptions, the x87 CRT helpers, `--native` bisection, the
+bridge ABI fix, or/xor jcc and the MMX byte ops).
 
 ## Documentation
 

@@ -6,6 +6,17 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- GOG's GOTY (2.0.0.5): the same code as the Steam build, file for file, its
+  launcher already unwrapped; Setup finds a GOG install through its uninstall
+  entry. Setup, conformance 11/11 and the OpenGL launcher checked on it.
+- README: the makeover's features, and original-vs-recompiled comparisons
+  (the same spawn and camera in the shipping exe and ours: widescreen,
+  texture filtering, anti-aliasing).
+
+### Changed
+- The toolkit's PRs #52-#61 are merged: Setup clones pcrecomp's `main` (and
+  updates an older clone), no longer the `ut99-integration` branch. The lift
+  from `main` is byte-identical.
 - Borderless fullscreen on Alt+Enter (in place of UT's display-mode change),
   remembered across starts in `System\RecompHost.ini` (docs/bringup.md 21).
 - *Mod > Recomp Graphics*: our UnrealScript package (`mod/RecompMenu`, built

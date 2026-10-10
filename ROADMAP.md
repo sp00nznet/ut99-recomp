@@ -26,8 +26,8 @@ In order; each is done when its check is in the harness or the docs.
    the original's (`tools/click_original.py` records it), not only "lit" and
    "translucent".
 7. **Setup.cmd**: done. The Quick start in one double-click, from a clean
-   folder: tools checked, the toolkit cloned on its `ut99-integration` branch
-   until #52-#61 merge, the Steam install found and copied, then the
+   folder: tools checked, the toolkit cloned (its `main`, which has #52-#61
+   since they merged), the Steam or GOG install found and copied, then the
    pipeline and a launcher.
 
 ## The makeover

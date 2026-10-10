@@ -16,7 +16,7 @@ $Toolkit = if ($env:PCRECOMP) { $env:PCRECOMP } else { Join-Path (Split-Path -Pa
 $T = Join-Path $Toolkit 'tools'
 $Log = Join-Path $Root 'setup.log'
 # Until pcrecomp #52-#59 and #61 merge, the toolkit is this branch: main with them merged.
-$Branch = 'ut99-integration'
+$Branch = 'main'
 Set-Location $Root
 # A log line that cannot be written (the log open in another program) is
 # not a reason to stop the setup.
@@ -110,12 +110,13 @@ if (-not (Test-Path (Join-Path $T 'lift\lift32.py'))) {
   Run "Cloning pcrecomp ($Branch)" @('git', 'clone', '--depth', '1', '--branch', $Branch, 'https://github.com/sp00nznet/pcrecomp', $Toolkit)
 }
 if (-not (Toolkit-Ready)) {
-  Say "  Your pcrecomp at $Toolkit lacks changes this game needs (pcrecomp #52-#61, not merged yet)."
-  if (-not (Ask "  Switch that checkout to its '$Branch' branch, which has them?")) {
+  Say "  Your pcrecomp at $Toolkit lacks changes this game needs (pcrecomp #52-#61, merged in 2026-10)."
+  if (-not (Ask "  Update that checkout to the latest '$Branch', which has them?")) {
     Fail "pcrecomp needs the '$Branch' branch: git -C `"$Toolkit`" fetch origin $Branch, then check it out."
   }
-  Run "Fetching $Branch" @('git', '-C', $Toolkit, 'fetch', 'origin', "${Branch}:${Branch}")
+  Run "Fetching $Branch" @('git', '-C', $Toolkit, 'fetch', 'origin', $Branch)
   Run "Checking out $Branch" @('git', '-C', $Toolkit, 'checkout', $Branch)
+  Run "Updating $Branch" @('git', '-C', $Toolkit, 'merge', '--ff-only', "origin/$Branch")
   if (-not (Toolkit-Ready)) { Fail "pcrecomp's $Branch branch still lacks what this game needs; see the README, Building from source." }
 }
 Say "  pcrecomp: $Toolkit"
