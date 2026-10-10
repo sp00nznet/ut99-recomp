@@ -6,6 +6,10 @@ versions follow [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- WASD: `tools/hd_ini.py` (Setup step 8) binds movement to W, A, S and D,
+  jump to Space and crouch to Ctrl and C in the launcher's `UTRecompUser.ini`,
+  only while W is still unbound as UT ships it, so keys rebound in game
+  stand; `--classic-keys` leaves UT's own.
 - GOG's GOTY (2.0.0.5): the same code as the Steam build, file for file, its
   launcher already unwrapped; Setup finds a GOG install through its uninstall
   entry. Setup, conformance 11/11 and the OpenGL launcher checked on it.

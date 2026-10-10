@@ -35,6 +35,10 @@ look is one setting away (*Mod > Recomp Graphics*, or the stock ini).
   the size.
 - **Borderless fullscreen on Alt+Enter**, where UT's own mode switch fails on
   Windows 11. The window remembers its size.
+- **WASD**: movement on W, A, S and D, jump on Space, crouch on Ctrl or C,
+  set when Setup writes the launcher's ini (UT ships movement on the arrows).
+  Keys you rebind in game stay; `py -3 tools\hd_ini.py --reset --classic-keys`
+  goes back to UT's own.
 - **Settings in the game's own menus**: *Mod > Recomp Graphics*, an
   UnrealScript window of ours, saved in the game's ini.
 - **Steam or GOG**: either copy of the game (the same code, file for file).
@@ -137,7 +141,8 @@ your machine from your copy and is never distributed.
    window in UT's OpenGL renderer, on its own `game\System\UTRecomp.ini`
    (`py -3 tools\hd_ini.py --reset 1920x1080` remakes it at another size).
    *Mod > Recomp Graphics* in the game's menu bar has the rendering settings.
-   **Alt+Enter** switches to borderless fullscreen and back.
+   **Alt+Enter** switches to borderless fullscreen and back. Movement is on
+   WASD (Options > Controls rebinds it as in the original).
 
 ### Step by step
 

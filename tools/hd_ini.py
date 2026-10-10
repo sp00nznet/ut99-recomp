@@ -8,9 +8,12 @@ The Mod menu's "Recomp Graphics" window (mod/RecompMenu) changes the same
 settings from inside the game. A rerun keeps what is already in the pair and
 adds only what is missing; --reset starts over from the stock files.
 
-  py -3 tools/hd_ini.py [--reset] [WIDTHxHEIGHT]    default: 16:9, 80% of the screen
+  py -3 tools/hd_ini.py [--reset] [--classic-keys] [WIDTHxHEIGHT]    default: 16:9, 80% of the screen
+
+Movement goes on WASD unless --classic-keys, and only while W is still
+unbound as UT ships it, so a rerun never undoes keys you rebound in game.
 """
-import ctypes, math, os, sys
+import ctypes, math, os, re, sys
 
 SYS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'game', 'System')
 
@@ -50,9 +53,20 @@ def default_size():
     return w, w * 9 // 16
 
 
+# Movement on WASD, crouch on Ctrl and C, jump on Space. UT ships W, A and D
+# unbound, S on a rise axis and Ctrl on jump; the arrows keep strafing.
+WASD = {'W': 'MoveForward', 'S': 'MoveBackward', 'A': 'StrafeLeft', 'D': 'StrafeRight',
+        'Space': 'Jump', 'Ctrl': 'Duck', 'C': 'Duck'}
+
+
+def wasd_unset(user):
+    m = re.search(r'^\[Engine\.Input\]\r?\n(.*?)(?=^\[|\Z)', user, re.M | re.S)
+    return bool(m) and re.search(r'^W=\s*$', m.group(1), re.M) is not None
+
+
 def main(args):
     reset = '--reset' in args
-    size = [a for a in args if a != '--reset']
+    size = [a for a in args if not a.startswith('--')]
     path = lambda n: os.path.join(SYS, n)
     read = lambda n: open(path(n), encoding='latin-1').read()
     fresh = reset or size or not os.path.exists(path('UTRecomp.ini'))
@@ -74,10 +88,14 @@ def main(args):
     user = set_keys(user, 'Engine.PlayerPawn', {'DesiredFOV': fov, 'DefaultFOV': fov}, keep)
     if first:   # after that, the Mod menu's choice stands
         user = set_keys(user, 'Botpack.ChallengeHUD', {'FontInfoClass': 'RecompMenu.RecompFontInfo'})
+    wasd = '--classic-keys' not in args and wasd_unset(user)
+    if wasd:   # only while W is unbound, as UT ships it: keys rebound in game stand
+        user = set_keys(user, 'Engine.Input', WASD)
     for name, text in (('UTRecomp.ini', ini), ('UTRecompUser.ini', user)):
         open(path(name), 'w', encoding='latin-1', newline='').write(text)
-    print('UTRecomp.ini: OpenGL, %s; UTRecompUser.ini: FOV %s, scaled HUD fonts'
-          % ('%dx%d' % (w, h) if fresh else 'kept your settings, added what was missing', fov if fresh else 'kept'))
+    print('UTRecomp.ini: OpenGL, %s; UTRecompUser.ini: FOV %s, scaled HUD fonts%s'
+          % ('%dx%d' % (w, h) if fresh else 'kept your settings, added what was missing', fov if fresh else 'kept',
+             ', WASD' if wasd else ''))
 
 
 if __name__ == '__main__':
@@ -85,4 +103,6 @@ if __name__ == '__main__':
     assert set_keys('[A]\r\nx=1\r\n[B]\r\nx=1\r\n', 'B', {'x': 2, 'y': 3}) == '[A]\r\nx=1\r\n[B]\r\nx=2\r\ny=3\r\n'
     assert set_keys('[B]\r\nx=1\r\n', 'B', {'x': 2, 'y': 3}, True) == '[B]\r\nx=1\r\ny=3\r\n'
     assert set_keys('[A]\r\n', 'B', {'x': 2}) == '[A]\r\n\r\n[B]\r\nx=2\r\n'
+    assert wasd_unset('[Engine.Input]\r\nW=\r\n[X]\r\nW=Fire\r\n')
+    assert not wasd_unset('[Engine.Input]\r\nW=MoveForward\r\n')
     main(sys.argv[1:])
