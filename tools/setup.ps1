@@ -8,7 +8,10 @@
 # launcher. Each step is skipped when its output already exists (-Force redoes
 # them). Everything it does goes to setup.log. Nothing is downloaded except the
 # tools it asks about; nothing from the game leaves this machine.
-param([switch]$Force, [string]$Game = "")
+# -Yes answers every question yes and never waits for Enter: the installer
+# (recomp-launcher) runs it that way.
+param([switch]$Force, [string]$Game = "", [switch]$Yes)
+if ($env:RECOMP_LAUNCHER) { $Yes = $true }
 
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
@@ -28,9 +31,9 @@ function Step($n, $t) { Write-Host ""; Say "[$n/8] $t" 'Cyan' }
 function Fail($t) {
   Say "" ; Say "Setup stopped: $t" 'Red'
   Say "The details are in $Log. Fix that and run Setup.cmd again; finished steps are skipped." 'Yellow'
-  Read-Host "Press Enter to close" | Out-Null; exit 1
+  if (-not $Yes) { Read-Host "Press Enter to close" | Out-Null }; exit 1
 }
-function Ask($q) { $a = Read-Host "$q [Y/n]"; return -not ($a -match '^[nN]') }   # Enter = yes
+function Ask($q) { if ($Yes) { return $true }; $a = Read-Host "$q [Y/n]"; return -not ($a -match '^[nN]') }   # Enter = yes
 function Refresh-Path {
   $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User')
 }
@@ -50,7 +53,7 @@ function Run($what, [string[]]$cmd) {
   if ($code -ne 0) { Fail "$what failed (exit code $code)." }
 }
 
-Clear-Host
+if (-not $Yes) { Clear-Host }
 Say "Unreal Tournament (1999) - static recompilation setup" 'White'
 Say "You need your installed copy of Unreal Tournament (Steam or GOG) and about 3 GB free."
 Say "The function catalogs, the lift and the build take 40 to 80 minutes, once."
@@ -126,7 +129,16 @@ Say "  pcrecomp: $Toolkit"
 # of its own, so this says what to install rather than installing it.
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 $vs = if (Test-Path $vswhere) { (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) } else { $null }
-if (-not $vs) { Fail "Visual Studio 2022 (or its Build Tools) with 'Desktop development with C++' is needed. Install it, then run Setup.cmd again." }
+if (-not $vs) {
+  Say "  Visual Studio 2022 with 'Desktop development with C++' is not installed."
+  if (-not (Get-Command winget -ErrorAction SilentlyContinue) -or -not (Ask "  Install the Visual Studio 2022 Build Tools now (winget, about 2 GB)?")) {
+    Fail "Visual Studio 2022 (or its Build Tools) with 'Desktop development with C++' is needed. Install it, then run Setup.cmd again."
+  }
+  Exec @('winget', 'install', '-e', '--id', 'Microsoft.VisualStudio.2022.BuildTools', '--accept-package-agreements', '--accept-source-agreements',
+         '--override', '--quiet --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended') | Out-Null
+  $vs = if (Test-Path $vswhere) { (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath) } else { $null }
+  if (-not $vs) { Fail "the Visual Studio Build Tools did not install. Install them with 'Desktop development with C++', then run Setup.cmd again." }
+}
 Say "  Visual Studio: $vs"
 # $tool, not $t: PowerShell names are case-insensitive, and $T is the toolkit path.
 foreach ($tool in @(@('cmake', 'Kitware.CMake', '30 MB'), @('ninja', 'Ninja-build.Ninja', '1 MB'))) {
@@ -186,6 +198,7 @@ if ((Is-Install 'game') -and -not $Force) {
     $Game = Find-Installed
     if ($Game) { Say "  Found it installed: $Game" }
   }
+  if ($Yes -and -not (Is-Install $Game)) { Fail "no Unreal Tournament install was found (the folder with System\UnrealTournament.exe). Choose its folder and try again." }
   while (-not (Is-Install $Game)) {
     $Game = (Read-Host "  Paste the folder Unreal Tournament is installed in (the one with System\UnrealTournament.exe)").Trim('"', ' ')
     if (-not (Is-Install $Game)) { Say "  No System\UnrealTournament.exe and System\Engine.dll in that folder." 'Yellow' }
@@ -274,4 +287,4 @@ Say "  $lnk"
 
 Write-Host ""
 Say "Done. Double-click 'Unreal Tournament (recomp).cmd' to run it." 'Green'
-Read-Host "Press Enter to close" | Out-Null
+if (-not $Yes) { Read-Host "Press Enter to close" | Out-Null }

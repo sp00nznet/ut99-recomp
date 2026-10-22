@@ -1,0 +1,18 @@
+{
+  "title": "Unreal Tournament",
+  "repo": "sp00nznet/ut99-recomp",
+  "accent": "#d4572a",
+  "note": {
+    "default": "The first build takes 40 to 80 minutes and about 3 GB. Python, CMake, Ninja and the Visual Studio Build Tools (about 2 GB) are installed if they are missing; Windows asks for permission once. Works with the Steam and GOG Game of the Year editions (for GOG's, choose its install folder)."
+  },
+  "game": {
+    "name": "Unreal Tournament",
+    "files": ["System/UnrealTournament.exe"],
+    "steam": "Unreal Tournament"
+  },
+  "sources": [{ "repo": "sp00nznet/pcrecomp", "ref": "1b08151dd6d21fac28e6b86d55f3ed734c8d4c9f", "dir": "tools" }],
+  "setup": {
+    "default": ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "tools\\setup.ps1", "-Yes", "-Game", "{game}"]
+  },
+  "play": "Unreal*(recomp).cmd"
+}
