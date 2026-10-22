@@ -127,6 +127,15 @@ one build runs either (conformance 11/11 on both). Nothing from the game is in t
 repository and nothing is downloaded for you. The lifted C is generated on
 your machine from your copy and is never distributed.
 
+### The installer (Windows)
+
+Download `UnrealTournament-Recomp-Installer-windows-x64.exe` from
+[Releases](https://github.com/sp00nznet/ut99-recomp/releases), open it, and
+press **Build my recomp**. It finds a Steam copy itself (for GOG's, choose its
+install folder), runs the setup below without questions, and leaves a **Play**
+button. Windows SmartScreen asks first, because the installer isn't signed:
+**More info**, **Run anyway**.
+
 ### Quick start
 
 1. Download this repository (Code → Download ZIP) and unzip it anywhere.

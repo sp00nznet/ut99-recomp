@@ -3,9 +3,17 @@
 All notable changes to this project. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.1.0] - 2026-10-22
+
+The first release, with a Windows installer.
 
 ### Added
+- The installer (recomp-launcher): `UnrealTournament-Recomp-Installer-windows-x64.exe`
+  on each release. It finds a Steam copy (or takes a chosen folder), runs
+  `tools/setup.ps1 -Yes` with pcrecomp pinned at 1b08151, and leaves a Play
+  button. `-Yes` (or `RECOMP_LAUNCHER`) answers every question yes, never
+  waits for Enter, and installs the Visual Studio Build Tools when missing.
+  Checked from a fresh folder: all 8 steps, 14 modules bound, DM-Tutorial runs.
 - WASD: `tools/hd_ini.py` (Setup step 8) binds movement to W, A, S and D,
   jump to Space and crouch to Ctrl and C in the launcher's `UTRecompUser.ini`,
   only while W is still unbound as UT ships it, so keys rebound in game
